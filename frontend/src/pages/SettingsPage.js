@@ -4,7 +4,7 @@ import {
     Settings, Save, RefreshCw, Shield, Database,
     Mail, Globe, Palette, Server, Lock, AlertCircle, CheckCircle, Smartphone,
     Check, X, Trash2, Upload, UploadCloud, Download, Wifi, WifiOff, BookOpen,
-    Sun, Moon, Volume2, Eye, Printer, Key, AlertTriangle, User, Monitor, Search
+    Sun, Moon, Volume2, Eye, Printer, Key, AlertTriangle, User, Monitor, Search, Table
 } from 'lucide-react';
 import { useSocket } from '../context/SocketContext';
 import PasswordPromptModal from '../components/common/PasswordPromptModal';
@@ -16,6 +16,7 @@ import { useSession } from '../context/SessionContext';
 import PrintPreviewModal from '../components/common/PrintPreviewModal';
 import { generatePrintContent } from '../utils/SmartPrinterHandler';
 import GlassSelect from '../components/common/GlassSelect';
+import DatabaseGuiTab from '../components/admin/DatabaseGuiTab';
 
 // Help functions
 const getPasswordStrength = (password) => {
@@ -1682,6 +1683,7 @@ const SettingsPage = () => {
             title: t('settings.sections.system_admin'),
             items: [
                 { id: 'data', label: t('settings.tabs.data'), icon: Database, access: 'Admin' },
+                { id: 'database_gui', label: t('settings.tabs.db_gui') || 'Database Inspector', icon: Table, access: 'Admin' }, // New Tab
                 { id: 'enrichment', label: t('settings.tabs.enrichment'), icon: BookOpen, access: 'All' },
                 { id: 'email', label: t('settings.tabs.email'), icon: Mail, access: 'Admin' }
             ]
@@ -2456,6 +2458,9 @@ const SettingsPage = () => {
                         onFactoryReset={handleFactoryReset}
                         fileInputRef={fileInputRef}
                     />
+                )}
+                {activeCategory === 'database_gui' && (
+                    <DatabaseGuiTab />
                 )}
                 {activeCategory === 'enrichment' && (
                     <DataEnrichmentTab
