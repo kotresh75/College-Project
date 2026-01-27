@@ -854,11 +854,10 @@
             "general": "General",
             "security": "Security",
             "hardware": "Hardware",
-            "data": "Data Maintenance",
-            "db_gui": "Database Inspector",
+            "data": "Data & Maint.",
             "photos": "Student Photos",
             "appearance": "Appearance",
-            "email": "Email Notifications",
+            "email": "Email Config",
             "enrichment": "Data Enrichment"
         },
         "sections": {
