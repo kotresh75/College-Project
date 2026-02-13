@@ -1,0 +1,3 @@
+ISBN,Title,Author,Publisher,Department,Cover URL,Shelf/Rack,Price,Qty
+978-3-16-148410-0,The Great Gatsby,F. Scott Fitzgerald,Scribner,Computer Science,https://example.com/gatsby.jpg,A-12,500,5
+978-0-7432-7356-5,Clean Code,Robert C. Martin,Prentice Hall,Computer Science,,B-05,1200,3

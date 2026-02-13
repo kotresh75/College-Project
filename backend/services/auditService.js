@@ -17,15 +17,19 @@ exports.log = (user, actionType, moduleName, description, metadata = {}) => {
             const id = uuidv4();
             let actorId = 'SYSTEM';
             let actorRole = 'System';
+            let actorEmail = 'system@library.com';
             let ipAddress = null;
 
             if (user && typeof user === 'object') {
                 actorId = user.id || 'SYSTEM';
                 actorRole = user.role || 'System';
+                actorEmail = user.email || null;
                 // If we passed req.user from auth middleware, it might have more info, 
                 // but we stick to ID/Role for the DB schema.
             } else if (typeof user === 'string') {
                 actorId = user; // Manual override
+                // If manual string id provided, we might not know email, leave null or lookup later (too expensive here)
+                if (actorId === 'SYSTEM') actorEmail = 'system@library.com';
             }
 
             // Extract IP if metadata has it (optional convention)
@@ -36,14 +40,15 @@ exports.log = (user, actionType, moduleName, description, metadata = {}) => {
 
             const query = `
                 INSERT INTO audit_logs 
-                (id, actor_id, actor_role, action_type, module, description, metadata, ip_address, timestamp) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now', '+05:30'))
+                (id, actor_id, actor_role, actor_email, action_type, module, description, metadata, ip_address, timestamp) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now', '+05:30'))
             `;
 
             const params = [
                 id,
                 actorId,
                 actorRole,
+                actorEmail,
                 actionType,
                 moduleName,
                 description,
@@ -58,7 +63,7 @@ exports.log = (user, actionType, moduleName, description, metadata = {}) => {
                     resolve(null);
                 } else {
                     socketService.emit('audit_log', {
-                        id, actorId, actorRole, actionType, moduleName, description, metadata, ipAddress, timestamp: new Date().toISOString()
+                        id, actorId, actorRole, actorEmail, actionType, moduleName, description, metadata, ipAddress, timestamp: new Date().toISOString()
                     });
                     resolve(id);
                 }

@@ -50,10 +50,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
                     if (!err && this.changes > 0) console.log("Fixed missing IDs for books");
                 });
 
-                // DATA REPAIR: Remove old Root Admin (if exists) as we use veerkotresh@gmail.com now
-                db.run("DELETE FROM admins WHERE email = '922f1ffd-6f3e-219e-6aab-3565b783402e@gmail.com'", (err) => {
-                    if (!err && this.changes > 0) console.log("Removed old Root Admin (922f1ffd...)");
-                });
+
 
                 // SCHEMA MIGRATION: Add profile_image to students if not exists
                 db.run("ALTER TABLE students ADD COLUMN profile_image TEXT", (err) => {
@@ -115,6 +112,41 @@ const db = new sqlite3.Database(dbPath, (err) => {
                         console.log("Added id column to system_settings table");
                         // Backfill IDs
                         db.run("UPDATE system_settings SET id = lower(hex(randomblob(16))) WHERE id IS NULL");
+                    }
+                });
+
+                // SCHEMA MIGRATION: Add actor_email to audit_logs
+                db.run("ALTER TABLE audit_logs ADD COLUMN actor_email TEXT", (err) => {
+                    if (!err) {
+                        console.log("Added actor_email column to audit_logs table");
+
+                        // DATA MIGRATION: Backfill actor_email
+                        // 1. From Admins
+                        db.run(`
+                            UPDATE audit_logs 
+                            SET actor_email = (SELECT email FROM admins WHERE admins.id = audit_logs.actor_id)
+                            WHERE actor_role = 'Admin' AND actor_email IS NULL
+                        `, (err) => {
+                            if (!err && this.changes > 0) console.log("Backfilled actor_email for Admins in audit_logs");
+                        });
+
+                        // 2. From Staff
+                        db.run(`
+                            UPDATE audit_logs 
+                            SET actor_email = (SELECT email FROM staff WHERE staff.id = audit_logs.actor_id)
+                            WHERE (actor_role = 'Staff' OR actor_role = 'System') AND actor_email IS NULL
+                        `, (err) => {
+                            if (!err && this.changes > 0) console.log("Backfilled actor_email for Staff in audit_logs");
+                        });
+
+                        // 3. For System Actions (if actor_id is SYSTEM)
+                        db.run(`
+                            UPDATE audit_logs 
+                            SET actor_email = 'system@library.com'
+                            WHERE actor_id = 'SYSTEM' AND actor_email IS NULL
+                        `, (err) => {
+                            if (!err && this.changes > 0) console.log("Backfilled actor_email for SYSTEM actions");
+                        });
                     }
                 });
             }
@@ -289,6 +321,7 @@ function initializeTables() {
             timestamp TEXT DEFAULT (datetime('now', '+05:30')),
             actor_id TEXT,
             actor_role TEXT,
+            actor_email TEXT, -- Added for better identification
             action_type TEXT,
             module TEXT,
             description TEXT,
@@ -370,10 +403,9 @@ function initializeTables() {
             // Ignore error if column already exists
         });
 
-        // Seed Default Settings & Admin User
+        // Seed Default Settings & System User (Admin is created via Setup Page)
         seedSystemSettings();
         ensureDefaultPolicies();
-        seedAdminUser();
         seedSystemUser();
     });
 }
@@ -402,37 +434,7 @@ function seedSystemUser() {
     });
 }
 
-function seedAdminUser() {
-    db.get("SELECT count(*) as count FROM admins WHERE email = 'veerkotresh@gmail.com'", (err, row) => {
-        if (err) {
-            console.error("Error checking admin user:", err);
-            return;
-        }
-        if (row && row.count === 0) {
-            console.log("Seeding initial admin user...");
-            const bcrypt = require('bcryptjs');
-            const password = '123456';
-            const saltRounds = 10;
 
-            bcrypt.hash(password, saltRounds, (err, hash) => {
-                if (err) {
-                    console.error("Error hashing password:", err);
-                    return;
-                }
-                const insert = db.prepare("INSERT INTO admins (id, name, email, password_hash, status, created_at) VALUES (?, ?, ?, ?, ?, ?)");
-                // Simple mock UUID for seed
-                const id = 'admin-seed-' + Date.now();
-                const createdAt = getISTISOWithOffset();
-
-                insert.run(id, 'System Admin', 'veerkotresh@gmail.com', hash, 'Active', createdAt, (err) => {
-                    if (err) console.error("Failed to insert admin:", err);
-                    else console.log("Admin user seeded successfully.");
-                });
-                insert.finalize();
-            });
-        }
-    });
-}
 
 function seedSystemSettings() {
     db.get("SELECT count(*) as count FROM system_settings", (err, row) => {

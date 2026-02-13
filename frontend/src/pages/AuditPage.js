@@ -10,6 +10,7 @@ import StatsCard from '../components/dashboard/StatsCard';
 import SmartAuditTable from '../components/dashboard/SmartAuditTable';
 import GlassSelect from '../components/common/GlassSelect';
 import SmartExportModal from '../components/common/SmartExportModal';
+import PdfPreviewModal from '../components/common/PdfPreviewModal';
 
 const AuditPage = () => {
     const { t } = useLanguage();
@@ -22,6 +23,7 @@ const AuditPage = () => {
     const [totalPages, setTotalPages] = useState(1);
     const [limit, setLimit] = useState(20);
     const [showExportModal, setShowExportModal] = useState(false);
+    const [pdfPreview, setPdfPreview] = useState({ isOpen: false, html: '', title: '', fileName: '' });
 
     const [filters, setFilters] = useState({
         startDate: '',
@@ -91,42 +93,75 @@ const AuditPage = () => {
 
     const handleSmartExport = async (scope, format) => {
         try {
+            // For PDF, use client-side PdfPreviewModal
+            if (format === 'pdf') {
+                const token = localStorage.getItem('auth_token');
+                const headers = { Authorization: `Bearer ${token}` };
+                let params = new URLSearchParams();
+                if (scope === 'filtered') {
+                    Object.keys(filters).forEach(key => {
+                        if (filters[key]) params.append(key, filters[key]);
+                    });
+                }
+                params.append('limit', '100000');
+                setLoading(true);
+                const res = await axios.get(`http://localhost:17221/api/audit?${params}`, { headers });
+                const allLogs = res.data.data || [];
+                setLoading(false);
+
+                const cleanData = allLogs.map(log => ({
+                    Timestamp: new Date(log.timestamp).toLocaleString(),
+                    Actor: log.actor_name || log.user_id || 'System',
+                    Role: log.actor_role || 'System',
+                    Action: log.action_type,
+                    Module: log.module,
+                    Description: (log.description || log.details || '-').substring(0, 60)
+                }));
+
+                const { generatePrintContent } = require('../utils/SmartPrinterHandler');
+                const content = generatePrintContent('Audit Logs', cleanData, [
+                    { key: 'Timestamp', label: 'Timestamp' },
+                    { key: 'Actor', label: 'Actor' },
+                    { key: 'Role', label: 'Role' },
+                    { key: 'Action', label: 'Action' },
+                    { key: 'Module', label: 'Module' },
+                    { key: 'Description', label: 'Description' }
+                ], {});
+                setShowExportModal(false);
+                setPdfPreview({ isOpen: true, html: content.html, title: 'Audit Logs', fileName: `audit_logs_${new Date().toISOString().split('T')[0]}` });
+                return;
+            }
+
+            // For other formats, use server-side export
             const token = localStorage.getItem('auth_token');
             const headers = { Authorization: `Bearer ${token}` };
             let params = new URLSearchParams();
-
             if (scope === 'filtered') {
                 Object.keys(filters).forEach(key => {
                     if (filters[key]) params.append(key, filters[key]);
                 });
             }
-
             params.append('format', format);
+            params.append('limit', '100000');
 
-            setLoading(true); // Optional: show loading indicator
+            setLoading(true);
             const response = await axios.get(`http://localhost:17221/api/audit/export?${params.toString()}`, {
                 headers,
                 responseType: 'blob'
             });
 
-            // Create blob link to download
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href = url;
-
-            // Set filename based on format
-            const extension = format === 'xlsx' ? 'xlsx' : format === 'pdf' ? 'pdf' : 'csv';
+            const extension = format === 'xlsx' ? 'xlsx' : 'csv';
             link.setAttribute('download', `audit_logs_${new Date().toISOString().split('T')[0]}.${extension}`);
-
             document.body.appendChild(link);
             link.click();
             link.parentNode.removeChild(link);
-
             setLoading(false);
         } catch (error) {
             console.error("Export failed:", error);
             setLoading(false);
-            // Optionally show error notification
         }
     };
 
@@ -291,16 +326,27 @@ const AuditPage = () => {
                         DESCRIPTION: log.description || log.details || '-'
                     }))}
                     columns={['TIMESTAMP', 'ACTOR', 'ROLE', 'ACTION', 'MODULE', 'DESCRIPTION']}
-                    onFetchAll={async () => {
+                    getExportData={async (scope) => {
                         try {
                             const token = localStorage.getItem('auth_token');
                             const headers = { Authorization: `Bearer ${token}` };
-                            const params = new URLSearchParams({
-                                ...filters,
-                                limit: 10000 // Fetch all
-                            });
+                            let params = new URLSearchParams();
+
+                            if (scope === 'all') {
+                                params.append('limit', '100000'); // Fetch all
+                            } else if (scope === 'filtered') {
+                                Object.keys(filters).forEach(key => {
+                                    if (filters[key]) params.append(key, filters[key]);
+                                });
+                                params.append('limit', '100000');
+                            } else if (scope === 'selected') {
+                                return []; // Not implemented for audit yet
+                            }
+
                             const res = await axios.get(`http://localhost:17221/api/audit?${params}`, { headers });
                             const allLogs = res.data.data;
+                            if (!Array.isArray(allLogs)) throw new Error("Invalid data format");
+
                             return allLogs.map(log => ({
                                 TIMESTAMP: new Date(log.timestamp).toLocaleString(),
                                 ACTOR: log.actor_name || log.user_id || 'System',
@@ -310,12 +356,20 @@ const AuditPage = () => {
                                 DESCRIPTION: log.description || log.details || '-'
                             }));
                         } catch (e) {
-                            console.error("Fetch all failed", e);
-                            return [];
+                            console.error("Fetch export data failed", e);
+                            throw e; // Throw to let modal handle error
                         }
                     }}
                 />
             )}
+
+            <PdfPreviewModal
+                isOpen={pdfPreview.isOpen}
+                onClose={() => setPdfPreview(p => ({ ...p, isOpen: false }))}
+                htmlContent={pdfPreview.html}
+                title={pdfPreview.title}
+                fileName={pdfPreview.fileName}
+            />
         </div>
     );
 };

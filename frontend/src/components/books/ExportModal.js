@@ -1,17 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { X, Download, FileText, FileSpreadsheet, Layers, CheckCircle2, Filter, Printer } from 'lucide-react';
-import PrintPreviewModal from '../common/PrintPreviewModal';
-import { generatePrintContent } from '../../utils/SmartPrinterHandler';
+import { X, Download, FileText, FileSpreadsheet, Layers, CheckCircle2, Filter } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 
-const ExportModal = ({ onClose, onExport, totalBooks, selectedCount, filteredCount, data = [], columns = [] }) => {
+const ExportModal = ({ onClose, onExport, totalBooks, selectedCount, filteredCount, data = [], columns = [], onFetchData }) => {
     const { t } = useLanguage();
     const [scope, setScope] = useState('all'); // all, selected, filtered
     const [format, setFormat] = useState('xlsx');
+    const [loading, setLoading] = useState(false);
 
     // Print State
-    const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-    const [printData, setPrintData] = useState({ html: '', paperSize: 'A4' });
     const [settings, setSettings] = useState({});
 
     useEffect(() => {
@@ -21,21 +18,16 @@ const ExportModal = ({ onClose, onExport, totalBooks, selectedCount, filteredCou
             .catch(() => { });
     }, []);
 
-    const handleExport = () => {
-        if (format === 'print') {
-            const content = generatePrintContent("Book Catalog", data, columns, settings);
-            setPrintData(content);
-            setIsPreviewOpen(true);
-        } else {
-            onExport(scope, format);
+    const handleExport = async () => {
+        setLoading(true);
+        try {
+            await onExport(scope, format);
             onClose();
+        } catch (error) {
+            console.error("Export failed:", error);
+        } finally {
+            setLoading(false);
         }
-    };
-
-    const handlePreviewSettingsChange = (newSize) => {
-        const newSettings = { ...settings, app_hardware: { ...settings.app_hardware, paperSize: newSize } };
-        const content = generatePrintContent("Book Catalog", data, columns, newSettings);
-        setPrintData(content);
     };
 
     const ScopeOption = ({ id, label, count, icon: Icon, disabled }) => (
@@ -111,7 +103,7 @@ const ExportModal = ({ onClose, onExport, totalBooks, selectedCount, filteredCou
                         {/* Format Selection */}
                         <div>
                             <label style={{ fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--text-secondary)', marginBottom: '12px', display: 'block' }}>{t('common.export.format')}</label>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '8px' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
 
                                 {/* Excel Option */}
                                 <div
@@ -152,23 +144,13 @@ const ExportModal = ({ onClose, onExport, totalBooks, selectedCount, filteredCou
                                     <span style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: '0.85rem' }}>{t('common.export.pdf')}</span>
                                 </div>
 
-                                {/* NEW Print Option */}
-                                <div
-                                    onClick={() => setFormat('print')}
-                                    className="format-card"
-                                    style={{
-                                        borderColor: format === 'print' ? '#8b5cf6' : 'var(--border-color)',
-                                        background: format === 'print' ? 'rgba(139, 92, 246, 0.1)' : 'transparent'
-                                    }}
-                                >
-                                    <Printer size={24} style={{ color: format === 'print' ? '#8b5cf6' : 'var(--text-secondary)', marginBottom: '6px' }} />
-                                    <span style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: '0.85rem' }}>{t('common.export.print')}</span>
-                                </div>
+
                             </div>
                         </div>
 
                         <button
                             onClick={handleExport}
+                            disabled={loading}
                             className="primary-glass-btn"
                             style={{
                                 width: '100%',
@@ -180,11 +162,13 @@ const ExportModal = ({ onClose, onExport, totalBooks, selectedCount, filteredCou
                                     format === 'xlsx' ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' :
                                         format === 'pdf' ? 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)' :
                                             format === 'print' ? 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)' :
-                                                'var(--primary-btn-bg)'
+                                                'var(--primary-btn-bg)',
+                                opacity: loading ? 0.7 : 1,
+                                cursor: loading ? 'wait' : 'pointer'
                             }}
                         >
-                            {format === 'print' ? <Printer size={20} /> : <Download size={20} />}
-                            {format === 'print' ? t('common.export.preview_print') : `${t('common.export.export_btn')} ${format === 'xlsx' ? t('common.export.excel') : format === 'pdf' ? t('common.export.pdf') : t('common.export.csv')}`}
+                            {loading ? <div className="spinner-sm" style={{ borderTopColor: 'white' }} /> : <Download size={20} />}
+                            {loading ? t('common.loading') : `${t('common.export.export_btn')} ${format === 'xlsx' ? t('common.export.excel') : format === 'pdf' ? t('common.export.pdf') : t('common.export.csv')}`}
                         </button>
 
                     </div>
@@ -231,14 +215,7 @@ const ExportModal = ({ onClose, onExport, totalBooks, selectedCount, filteredCou
                     }
                 `}</style>
             </div>
-            <PrintPreviewModal
-                isOpen={isPreviewOpen}
-                onClose={() => setIsPreviewOpen(false)}
-                title="Print Book List"
-                contentHtml={printData.html}
-                paperSize={printData.paperSize}
-                onSettingsChange={handlePreviewSettingsChange}
-            />
+
         </>
     );
 };

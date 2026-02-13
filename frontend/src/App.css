@@ -1672,7 +1672,8 @@ textarea,
     display: flex;
     justify-content: space-between;
     align-items: center;
-    -webkit-app-region: drag; /* Allow dragging */
+    -webkit-app-region: drag;
+    /* Allow dragging */
     padding: 0 10px;
     user-select: none;
     backdrop-filter: blur(10px);
@@ -1696,7 +1697,8 @@ textarea,
 
 .window-controls {
     display: flex;
-    -webkit-app-region: no-drag; /* Buttons must be clickable */
+    -webkit-app-region: no-drag;
+    /* Buttons must be clickable */
 }
 
 .control-btn {
@@ -1737,9 +1739,11 @@ textarea,
 
 /* --- Fixed Logo --- */
 .sidebar-logo {
-    height: 45px; /* Increased from 40px */
+    height: 45px;
+    /* Increased from 40px */
     width: auto;
     max-width: 100%;
-    object-fit: contain; /* Ensure full logo is visible */
+    object-fit: contain;
+    /* Ensure full logo is visible */
     filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
 }

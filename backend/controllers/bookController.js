@@ -71,7 +71,8 @@ exports.getBooks = (req, res) => {
 exports.addBook = (req, res) => {
     console.log("addBook Payload:", req.body); // Debug Log
 
-    const { isbn, title, author, publisher, category, dept_id, price, total_copies, cover_image, ebook_link, shelf_location } = req.body;
+    const { isbn, title, author, publisher, category, dept_id, price, total_copies, cover_image, cover_image_url, ebook_link, shelf_location } = req.body;
+    const finalCoverImage = cover_image || cover_image_url || '';
 
     // Use dept_id if present, else category (as fallback)
     const finalDeptId = dept_id || category; // This might be a UUID or a Name depending entirely on frontend
@@ -88,12 +89,12 @@ exports.addBook = (req, res) => {
     const bookId = generateId();
 
     const insertBookSafe = `
-        INSERT INTO books (id, isbn, title, author, publisher, dept_id, price, total_copies, cover_image, ebook_link, shelf_location)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO books (id, isbn, title, author, publisher, dept_id, price, total_copies, cover_image, cover_image_url, ebook_link, shelf_location)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     const proceedWithInsert = () => {
-        db.run(insertBookSafe, [bookId, isbn, title, author, publisher, finalDeptId, price, quantity, cover_image, ebook_link, shelf_location || ''], function (err) {
+        db.run(insertBookSafe, [bookId, isbn, title, author, publisher, finalDeptId, price, quantity, finalCoverImage, finalCoverImage, ebook_link, shelf_location || ''], function (err) {
             if (err) {
                 if (err.message.includes('UNIQUE constraint')) {
                     return res.status(400).json({ error: "Book with this ISBN already exists" });
@@ -161,16 +162,17 @@ exports.getBookDetails = (req, res) => {
 // Update Book
 exports.updateBook = (req, res) => {
     const { isbn } = req.params;
-    const { title, author, publisher, category, dept_id, price, cover_image, shelf_location } = req.body;
+    const { title, author, publisher, category, dept_id, price, cover_image, cover_image_url, shelf_location } = req.body;
+    const finalCoverImage = cover_image || cover_image_url || '';
 
     const finalDeptId = dept_id || category;
 
     const sql = `
-        UPDATE books SET title = ?, author = ?, publisher = ?, dept_id = ?, price = ?, cover_image = ?, shelf_location = ?
+        UPDATE books SET title = ?, author = ?, publisher = ?, dept_id = ?, price = ?, cover_image = ?, cover_image_url = ?, shelf_location = ?
         WHERE isbn = ?
     `;
 
-    db.run(sql, [title, author, publisher, finalDeptId, price, cover_image, shelf_location || '', isbn], function (err) {
+    db.run(sql, [title, author, publisher, finalDeptId, price, finalCoverImage, finalCoverImage, shelf_location || '', isbn], function (err) {
         if (err) {
             console.error("Update Book Error:", err.message);
             return res.status(500).json({ error: err.message });

@@ -77,13 +77,17 @@ exports.validateBorrower = async (req, res) => {
         const dailyFineRate = parseFloat(policyFinancial.dailyFineRate) || 1.00;
 
         let estimatedOverdueFines = 0;
-        const now = new Date();
+        const now = getISTDate();
+        const istOffset = 5.5 * 60 * 60 * 1000;
+        const nowDateStr = now.toISOString().split('T')[0]; // IST date as YYYY-MM-DD
 
         activeLoansData.forEach(loan => {
-            const dueDate = new Date(loan.due_date);
-            if (now > dueDate) {
-                const diffTime = Math.abs(now - dueDate);
-                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+            const dueDateParsed = new Date(loan.due_date);
+            // Convert real-UTC dueDate to fake-IST to extract IST date string
+            const dueDateIST = new Date(dueDateParsed.getTime() + istOffset);
+            const dueDateStr = dueDateIST.toISOString().split('T')[0];
+            if (nowDateStr > dueDateStr) {
+                const diffDays = Math.ceil((new Date(nowDateStr) - new Date(dueDateStr)) / (1000 * 60 * 60 * 24));
                 // Grace Period Removed: Fine applies to all overdue days immediately
                 estimatedOverdueFines += (diffDays * dailyFineRate);
             }
@@ -268,7 +272,7 @@ exports.getStudentActiveLoans = (req, res) => {
     const query = `
         SELECT c.id as transaction_id, c.issue_date, c.due_date, 
                bc.accession_number, b.title, b.author, b.isbn as book_isbn, b.cover_image,
-               (julianday('now') - julianday(c.due_date)) as overdue_days,
+               (julianday(datetime('now', '+05:30')) - julianday(c.due_date)) as overdue_days,
                (SELECT COUNT(*) FROM transaction_logs 
                 WHERE student_id = c.student_id AND copy_id = c.copy_id 
                 AND action_type = 'RENEW' AND timestamp > c.issue_date) as renewal_count
@@ -312,12 +316,19 @@ exports.returnBook = async (req, res) => {
 
         if (!loan) return res.status(400).json({ error: "Invalid loan ID or Book already returned" });
 
-        // Calculate Fines
+        // Calculate Fines (normalize both dates to IST date-only for accurate comparison)
         const now = getISTDate();
-        const dueDate = new Date(loan.due_date); // stored ISO string
-        const diffTime = Math.abs(now - dueDate);
-        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-        const isOverdue = now > dueDate;
+        const dueDateParsed = new Date(loan.due_date); // stored ISO string with +05:30
+        const istOffset = 5.5 * 60 * 60 * 1000;
+        // Convert real-UTC dueDate to fake-IST to extract IST date string
+        const dueDateIST = new Date(dueDateParsed.getTime() + istOffset);
+        const nowDateStr = now.toISOString().split('T')[0]; // IST date as YYYY-MM-DD
+        const dueDateStr = dueDateIST.toISOString().split('T')[0];
+        const isOverdue = nowDateStr > dueDateStr;
+        // Calculate days using date-only strings (avoids hour-level timezone issues)
+        const diffDays = isOverdue
+            ? Math.ceil((new Date(nowDateStr) - new Date(dueDateStr)) / (1000 * 60 * 60 * 24))
+            : 0;
 
         // Fetch Policies for Fine Calculation
         const [policyBorrowing, policyFinancial] = await Promise.all([
@@ -897,7 +908,7 @@ exports.getBookActiveLoans = (req, res) => {
         SELECT c.id as transaction_id, c.issue_date, c.due_date, 
                bc.accession_number, s.full_name as student_name, s.register_number, 
                d.name as department_name,
-               (julianday('now') - julianday(c.due_date)) as overdue_days
+               (julianday(datetime('now', '+05:30')) - julianday(c.due_date)) as overdue_days
         FROM circulation c
         JOIN book_copies bc ON c.copy_id = bc.id
         JOIN students s ON c.student_id = s.id
@@ -947,7 +958,7 @@ exports.getIssuedStudents = (req, res) => {
             s.id, s.full_name, s.register_number, s.semester, s.profile_image,
             d.name as department_name, d.code as department_code,
             COUNT(c.id) as books_issued,
-            SUM(CASE WHEN julianday('now') > julianday(c.due_date) THEN 1 ELSE 0 END) as overdue_count,
+            SUM(CASE WHEN julianday(datetime('now', '+05:30')) > julianday(c.due_date) THEN 1 ELSE 0 END) as overdue_count,
             MAX(c.issue_date) as latest_issue_date
         FROM students s
         JOIN circulation c ON s.id = c.student_id

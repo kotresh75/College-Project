@@ -386,9 +386,13 @@ exports.factoryReset = async (req, res) => {
             // Child tables first
             'fines', 'circulation', 'transaction_logs', 'notifications', 'activity_logs',
             // Content tables
-            'book_copies', 'books', 'students', 'staff',
+            'book_copies', 'books', 'students', 'departments', 'staff',
+            // Admin & Auth
+            'admins',
             // Logs
-            'audit_logs', 'broadcast_logs'
+            'audit_logs', 'broadcast_logs',
+            // Settings & Policies (re-seeded with defaults on next restart)
+            'system_settings', 'policy_config'
         ];
 
         // Use transaction

@@ -306,7 +306,7 @@ exports.exportStudents = (req, res) => {
     const { scope, format, filters, ids } = req.body;
 
     let query = `
-        SELECT s.full_name, s.father_name, s.register_number, d.name as department, s.semester, s.status, s.email, s.phone, s.dob, s.address
+        SELECT s.full_name, s.father_name, s.register_number, s.profile_image, d.name as department, s.semester, s.status, s.email, s.phone, s.dob, s.address
         FROM students s
         LEFT JOIN departments d ON s.dept_id = d.id
         WHERE s.status != 'Deleted'

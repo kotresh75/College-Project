@@ -321,8 +321,8 @@ ipcMain.handle('get-scanners', async () => {
     });
 });
 
-// Silent Print Handling
-ipcMain.handle('print-silent', async (event, content, printerName) => {
+// Silent Print Handling with Advanced Options
+ipcMain.handle('print-silent', async (event, content, options = {}) => {
     return new Promise((resolve, reject) => {
         const printWindow = new BrowserWindow({
             show: false,
@@ -334,15 +334,77 @@ ipcMain.handle('print-silent', async (event, content, printerName) => {
         printWindow.loadURL(dataUrl);
 
         printWindow.webContents.on('did-finish-load', () => {
-            printWindow.webContents.print({
+            // Map frontend options to Electron print settings
+            // Default 0 margins (customizable via options)
+            // marginsType: 0 - default, 1 - none, 2 - minimum
+
+            const printSettings = {
                 silent: true,
-                deviceName: printerName || ''
-                // If printerName is empty, it uses default.
-            }, (success, errorType) => {
+                deviceName: options.deviceName || '',
+                printBackground: options.printBackground !== false, // Default true
+                landscape: !!options.landscape,
+                color: options.color !== false, // Default true
+                margins: options.margins || { marginType: 0 },
+                scaleFactor: options.scaleFactor || 100,
+                pagesPerSheet: options.pagesPerSheet || 1,
+                collate: !!options.collate,
+                copies: options.copies || 1,
+                pageRanges: options.pageRanges || [], // [{from: 0, to: 1}]
+                duplexMode: options.duplexMode, // 'simplex', 'longEdge', 'shortEdge'
+                dpi: options.dpi
+            };
+
+            printWindow.webContents.print(printSettings, (success, errorType) => {
                 if (!success) console.error("Print Failed:", errorType);
                 printWindow.close();
                 resolve(success);
             });
+        });
+    });
+});
+
+// PDF Generation Handling
+ipcMain.handle('print-to-pdf', async (event, content, options = {}) => {
+    return new Promise((resolve, reject) => {
+        const printWindow = new BrowserWindow({
+            show: false,
+            webPreferences: { nodeIntegration: true }
+        });
+
+        const dataUrl = 'data:text/html;charset=utf-8,' + encodeURIComponent(content);
+        printWindow.loadURL(dataUrl);
+
+        printWindow.webContents.on('did-finish-load', async () => {
+            try {
+                // Map options to printToPDF options
+                const pdfOptions = {
+                    landscape: !!options.landscape,
+                    displayHeaderFooter: false,
+                    printBackground: options.printBackground !== false,
+                    scale: (options.scaleFactor || 100) / 100,
+                    pageSize: options.pageSize || 'A4',
+                    margins: {
+                        top: 0,
+                        bottom: 0,
+                        left: 0,
+                        right: 0
+                    }
+                    // We can add more mapping if needed
+                };
+
+                // If margins are passed as object Use them
+                if (options.margins && typeof options.margins === 'object' && options.margins.top !== undefined) {
+                    pdfOptions.margins = options.margins;
+                }
+
+                const data = await printWindow.webContents.printToPDF(pdfOptions);
+                printWindow.close();
+                resolve(data.toString('base64')); // Return as base64 string
+            } catch (error) {
+                console.error("PDF Generation Failed:", error);
+                printWindow.close();
+                reject(error);
+            }
         });
     });
 });

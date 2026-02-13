@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Download, FileText, FileSpreadsheet, Layers, CheckCircle2, Filter, Printer } from 'lucide-react';
-import PrintPreviewModal from '../common/PrintPreviewModal';
-import { generatePrintContent } from '../../utils/SmartPrinterHandler';
+import { X, Download, FileText, FileSpreadsheet, Layers, CheckCircle2, Filter } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 
 const StudentExportModal = ({ onClose, onExport, totalStudents, selectedCount, filteredCount, data = [], columns = [], onFetchAll, selectedIds }) => {
@@ -11,8 +9,6 @@ const StudentExportModal = ({ onClose, onExport, totalStudents, selectedCount, f
     const [loading, setLoading] = useState(false);
 
     // Print State
-    const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-    const [printData, setPrintData] = useState({ html: '', paperSize: 'A4' });
     const [settings, setSettings] = useState({});
 
     useEffect(() => {
@@ -23,68 +19,8 @@ const StudentExportModal = ({ onClose, onExport, totalStudents, selectedCount, f
     }, []);
 
     const handleExport = async () => {
-        if (format === 'print') {
-            setLoading(true);
-            try {
-                let printSource = [];
-
-                if (scope === 'filtered') {
-                    // Use current page data
-                    printSource = data;
-                } else if (scope === 'all') {
-                    // Fetch all data
-                    if (onFetchAll) {
-                        printSource = await onFetchAll();
-                    } else {
-                        printSource = data;
-                    }
-                } else if (scope === 'selected') {
-                    // Fetch all and filter by ID (since selection might span pages)
-                    // Optimisation: if all selected are on current page, use data? 
-                    // But simpler to fetch all if we support multi-page selection generally.
-                    if (onFetchAll) {
-                        const allData = await onFetchAll();
-                        // Need to match IDs. ensure onFetchAll returns objects with IDs or we map 'data' prop to include ID? 
-                        // StudentManager 'onFetchAll' returns raw student objects, 'data' prop returns formatted keys.
-                        // We need formatted data for print.
-
-                        // Wait, 'data' prop has "Name", "RegNo" keys. 'onFetchAll' returns raw API data.
-                        // We need to format the fetched data same as 'data' prop.
-                        // Ideally onFetchAll should return formatted data, or we format it here.
-                        // Let's rely on onFetchAll returning formatted data as per StudentManager implementation?
-                        // Checking StudentManager: onFetchAll returns mapped data: Name, RegNo...
-
-                        // We also need IDs to filter 'selected'. 
-                        // But StudentManager onFetchAll currently maps: Name, RegNo... DOES IT RETURN ID?
-                        // Step 1062: onFetchAll returns mapped object. DOES NOT INCLUDE ID.
-                        // We must update StudentManager onFetchAll to include ID.
-
-                        // Assuming StudentManager is updated to include ID in onFetchAll result:
-                        printSource = allData.filter(item => selectedIds.has(item.id));
-                    }
-                }
-
-                const content = generatePrintContent("Student List", printSource, columns, settings);
-                setPrintData(content);
-                setIsPreviewOpen(true);
-            } catch (e) {
-                console.error("Print generation failed", e);
-            } finally {
-                setLoading(false);
-            }
-        } else {
-            onExport(scope, format);
-            onClose();
-        }
-    };
-
-    const handlePreviewSettingsChange = (newSize) => {
-        const newSettings = { ...settings, app_hardware: { ...settings.app_hardware, paperSize: newSize } };
-        // We need 'printSource' here again? 
-        // generatePrintContent uses 'data' arg.
-        // We need to store the fetched data for re-generation on settings change?
-        // For simplicity, we can just use the 'printData.html'? No, resizing needs regeneration.
-        // Let's ignoring live resize for 'All' data if it's too complex, or store 'lastPrintSource'.
+        onExport(scope, format);
+        onClose();
     };
 
     const ScopeOption = ({ id, label, count, icon: Icon, disabled }) => (
@@ -164,7 +100,7 @@ const StudentExportModal = ({ onClose, onExport, totalStudents, selectedCount, f
                         {/* Format Selection */}
                         <div>
                             <label style={{ fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--text-secondary)', marginBottom: '12px', display: 'block' }}>{t('common.export.format')}</label>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '8px' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
                                 {/* ... Options ... */}
                                 <div onClick={() => setFormat('xlsx')} className="format-card" style={{
                                     borderColor: format === 'xlsx' ? '#10b981' : 'var(--border-color)',
@@ -187,13 +123,7 @@ const StudentExportModal = ({ onClose, onExport, totalStudents, selectedCount, f
                                     <FileText size={24} style={{ color: format === 'pdf' ? '#ef4444' : 'var(--text-secondary)', marginBottom: '6px' }} />
                                     <span style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: '0.85rem' }}>{t('common.export.pdf')}</span>
                                 </div>
-                                <div onClick={() => setFormat('print')} className="format-card" style={{
-                                    borderColor: format === 'print' ? '#8b5cf6' : 'var(--border-color)',
-                                    background: format === 'print' ? 'rgba(139, 92, 246, 0.1)' : 'transparent'
-                                }}>
-                                    <Printer size={24} style={{ color: format === 'print' ? '#8b5cf6' : 'var(--text-secondary)', marginBottom: '6px' }} />
-                                    <span style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: '0.85rem' }}>{t('common.export.print')}</span>
-                                </div>
+
                             </div>
                         </div>
 
@@ -210,13 +140,13 @@ const StudentExportModal = ({ onClose, onExport, totalStudents, selectedCount, f
                                 background:
                                     format === 'xlsx' ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' :
                                         format === 'pdf' ? 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)' :
-                                            format === 'print' ? 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)' :
-                                                'var(--primary-btn-bg)',
-                                opacity: loading ? 0.7 : 1
+                                            'var(--primary-btn-bg)',
+                                opacity: loading ? 0.7 : 1,
+                                cursor: loading ? 'wait' : 'pointer'
                             }}
                         >
-                            {loading ? <div className="spinner-sm" /> : (format === 'print' ? <Printer size={20} /> : <Download size={20} />)}
-                            {loading ? 'Processing...' : (format === 'print' ? t('common.export.preview_print') : `${t('common.export.export_btn')} ${format === 'xlsx' ? t('common.export.excel') : format === 'pdf' ? t('common.export.pdf') : t('common.export.csv')}`)}
+                            {loading ? <div className="spinner-sm" style={{ borderTopColor: 'white' }} /> : <Download size={20} />}
+                            {loading ? t('common.loading') : `${t('common.export.export_btn')} ${format === 'xlsx' ? t('common.export.excel') : format === 'pdf' ? t('common.export.pdf') : t('common.export.csv')}`}
                         </button>
 
                     </div>
@@ -263,14 +193,7 @@ const StudentExportModal = ({ onClose, onExport, totalStudents, selectedCount, f
                     }
                 `}</style>
             </div>
-            <PrintPreviewModal
-                isOpen={isPreviewOpen}
-                onClose={() => setIsPreviewOpen(false)}
-                title="Print Student List"
-                contentHtml={printData.html}
-                paperSize={printData.paperSize}
-                onSettingsChange={handlePreviewSettingsChange}
-            />
+
         </>
     );
 };

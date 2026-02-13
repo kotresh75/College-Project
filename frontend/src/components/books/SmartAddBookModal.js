@@ -131,11 +131,16 @@ const SmartAddBookModal = ({ onClose, onAdded }) => {
             return;
         }
 
+        const payload = { ...formData };
+        if (!payload.author || !payload.author.trim()) {
+            payload.author = 'Unknown';
+        }
+
         try {
             const res = await fetch('http://localhost:17221/api/books', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData)
+                body: JSON.stringify(payload)
             });
 
             const data = await res.json();
@@ -191,8 +196,7 @@ const SmartAddBookModal = ({ onClose, onAdded }) => {
                                 </button>
                             </div>
                         </div>
-                        {fetchSuccess && <div className="success-msg"><CheckCircle size={14} /> {fetchSuccess}</div>}
-                        {fetchSuccess && <div className="success-msg"><CheckCircle size={14} /> {fetchSuccess}</div>}
+                        {fetchSuccess && <div className="success-msg" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><CheckCircle size={14} /> {fetchSuccess}</div>}
                         {error && <div className="validation-msg"><AlertCircle size={14} /> {error}</div>}
                     </div>
 
@@ -218,7 +222,6 @@ const SmartAddBookModal = ({ onClose, onAdded }) => {
                                     value={formData.author}
                                     onChange={handleChange}
                                     placeholder={t('books.modal.author_placeholder')}
-                                    required
                                 />
                             </div>
                         </div>

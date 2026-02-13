@@ -41,9 +41,14 @@ cron.schedule('0 8 * * *', async () => {
                     };
                 }
 
-                const dueDate = new Date(row.due_date);
-                const diffTime = Math.abs(new Date() - dueDate);
-                const overdueDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                // Normalize to IST date-only for accurate day difference
+                const istOffset = 5.5 * 60 * 60 * 1000;
+                const nowIST = new Date(new Date().getTime() + istOffset);
+                const dueDateParsed = new Date(row.due_date);
+                const dueDateIST = new Date(dueDateParsed.getTime() + istOffset);
+                const nowDateStr = nowIST.toISOString().split('T')[0];
+                const dueDateStr = dueDateIST.toISOString().split('T')[0];
+                const overdueDays = Math.ceil((new Date(nowDateStr) - new Date(dueDateStr)) / (1000 * 60 * 60 * 24));
 
                 studentLoans[row.student_id].loans.push({
                     book_title: row.book_title,

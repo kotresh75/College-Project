@@ -8,8 +8,10 @@ import EditFineModal from './EditFineModal';
 import StatusModal from '../common/StatusModal';
 import FineHistoryTable from './FineHistoryTable';
 import TransactionDetailModal from './TransactionDetailModal';
-import GlassSelect from '../common/GlassSelect'; // Assuming this exists or using native select
-import ExportModal from '../books/ExportModal';
+import GlassSelect from '../common/GlassSelect';
+import SmartExportModal from '../common/SmartExportModal';
+import PdfPreviewModal from '../common/PdfPreviewModal';
+import { generatePrintContent } from '../../utils/SmartPrinterHandler';
 import { useLanguage } from '../../context/LanguageContext';
 
 const FinesTab = ({ initialTab }) => {
@@ -37,6 +39,7 @@ const FinesTab = ({ initialTab }) => {
     const [detailModal, setDetailModal] = useState({ isOpen: false, transaction: null });
     const [statusModal, setStatusModal] = useState({ isOpen: false, type: 'success', title: '', message: '' });
     const [showExportModal, setShowExportModal] = useState(false);
+    const [pdfPreview, setPdfPreview] = useState({ isOpen: false, html: '', title: '', fileName: '' });
     const [emailEvents, setEmailEvents] = useState(null);
 
     // Fetch Email Event Settings
@@ -147,12 +150,11 @@ const FinesTab = ({ initialTab }) => {
     const handleSmartExport = (scope, format) => {
         // 1. Determine Data Source
         let dataToExport = [];
-        const allHistoryFines = fines.filter(f => f.status !== 'Unpaid'); // All eligible for history
+        const allHistoryFines = fines.filter(f => f.status !== 'Unpaid');
 
         if (scope === 'filtered') {
             dataToExport = filteredHistoryFines;
         } else {
-            // Default to 'all' (excluding current unpaid)
             dataToExport = allHistoryFines;
         }
 
@@ -161,15 +163,18 @@ const FinesTab = ({ initialTab }) => {
             return;
         }
 
-        // 2. Prepare Data (Clean fields)
+        // 2. Prepare Data with ALL columns
         const cleanData = dataToExport.map(fine => ({
             Date: formatDate(fine.payment_date || fine.updated_at),
-            StudentName: fine.student_name,
-            RollNumber: fine.roll_number,
-            Amount: fine.status === 'Waived' ? 0 : fine.amount,
+            'Receipt ID': fine.receipt_number ? `REC-${String(fine.receipt_number).replace(/^REC-/, '')}` : '-',
+            Student: fine.student_name,
+            'Roll No': fine.roll_number,
+            Department: fine.department_name || '-',
+            'Book Title': fine.book_title || '-',
+            Amount: fine.status === 'Waived' ? 0 : `₹${fine.amount}`,
             Status: fine.status,
-            Reason: fine.reason || fine.remark || '',
-            PaymentMethod: fine.payment_method || '-'
+            Reason: fine.reason || fine.remark || '-',
+            'Payment Method': fine.payment_method || '-'
         }));
 
         // 3. Export Logic
@@ -193,35 +198,24 @@ const FinesTab = ({ initialTab }) => {
             link.click();
             document.body.removeChild(link);
         } else if (format === 'pdf') {
-            const jsPDF = require('jspdf').jsPDF;
-            const autoTable = require('jspdf-autotable').default;
-            const doc = new jsPDF();
-
-            doc.setFontSize(16);
-            doc.text('Fine History Report', 14, 15);
-            doc.setFontSize(10);
-            doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 22);
-
-            const tableColumns = ['Date', 'Student', 'Roll No', 'Amount', 'Status', 'Reason', 'Method'];
-            const tableRows = cleanData.map(f => [
-                f.Date,
-                f.StudentName,
-                f.RollNumber,
-                f.Amount,
-                f.Status,
-                (f.Reason || '').substring(0, 20),
-                f.PaymentMethod
-            ]);
-
-            autoTable(doc, {
-                head: [tableColumns],
-                body: tableRows,
-                startY: 28,
-                styles: { fontSize: 8, cellPadding: 2 },
-                headStyles: { fillColor: [16, 185, 129] } // Emerald color for money/fines
+            const content = generatePrintContent('Fine History Report', cleanData, [
+                { key: 'Date', label: 'Date' },
+                { key: 'Receipt ID', label: 'Receipt ID' },
+                { key: 'Student', label: 'Student' },
+                { key: 'Roll No', label: 'Roll No' },
+                { key: 'Department', label: 'Department' },
+                { key: 'Amount', label: 'Amount' },
+                { key: 'Status', label: 'Status' },
+                { key: 'Reason', label: 'Reason' },
+                { key: 'Payment Method', label: 'Method' }
+            ], {});
+            setShowExportModal(false);
+            setPdfPreview({
+                isOpen: true,
+                html: content.html,
+                title: 'Fine History Report',
+                fileName: `fines_export_${new Date().toISOString().slice(0, 10)}`
             });
-
-            doc.save(`fines_export_${new Date().toISOString().slice(0, 10)}.pdf`);
         }
     };
 
@@ -756,33 +750,25 @@ const FinesTab = ({ initialTab }) => {
                 message={statusModal.message}
             />
 
-            {
-                showExportModal && (
-                    <ExportModal
-                        onClose={() => setShowExportModal(false)}
-                        totalBooks={fines.filter(f => f.status !== 'Unpaid').length} // Total History Count
-                        selectedCount={0} // Selection not implemented for history yet
-                        filteredCount={filteredHistoryFines.length}
-                        onExport={handleSmartExport}
-                        data={filteredHistoryFines.map(f => ({
-                            Date: formatDate(f.payment_date || f.updated_at),
-                            Student: f.student_name,
-                            RollNo: f.roll_number,
-                            Amount: f.status === 'Waived' ? 0 : f.amount,
-                            Status: f.status,
-                            Type: f.reason || f.remark || '-'
-                        }))}
-                        columns={[
-                            t('circulation.fines.history.date'),
-                            t('circulation.fines.history.student'),
-                            t('students.table.reg_no'),
-                            t('circulation.fines.history.amount'),
-                            t('circulation.fines.history.status'),
-                            t('circulation.fines.history.reason')
-                        ]}
-                    />
-                )
-            }
+            {showExportModal && (
+                <SmartExportModal
+                    onClose={() => setShowExportModal(false)}
+                    totalCount={fines.filter(f => f.status !== 'Unpaid').length}
+                    selectedCount={0}
+                    filteredCount={filteredHistoryFines.length}
+                    entityName="Fine Records"
+                    onExport={handleSmartExport}
+                    columns={['Date', 'Receipt ID', 'Student', 'Roll No', 'Department', 'Book Title', 'Amount', 'Status', 'Reason', 'Payment Method']}
+                />
+            )}
+
+            <PdfPreviewModal
+                isOpen={pdfPreview.isOpen}
+                onClose={() => setPdfPreview(p => ({ ...p, isOpen: false }))}
+                htmlContent={pdfPreview.html}
+                title={pdfPreview.title}
+                fileName={pdfPreview.fileName}
+            />
         </div >
     );
 };

@@ -4,6 +4,10 @@ const authController = require('../controllers/authController');
 
 const { verifyToken } = require('../middleware/authMiddleware');
 
+// Public setup routes (no auth required)
+router.get('/setup-status', authController.setupStatus);
+router.post('/setup', authController.setupAdmin);
+
 router.post('/login', authController.login);
 router.post('/forgot-password', authController.requestPasswordReset);
 router.post('/verify-otp', authController.verifyOTP);

@@ -943,3 +943,42 @@ graph TD
     style Feat fill:#dfd,stroke:#333
     style Hothub fill:#fbb,stroke:#333
 ```
+
+---
+
+## 22. Use Case Overview Diagram
+A high-level visual summary of the system modules accessible by each user role.
+
+```mermaid
+flowchart LR
+    %% Actors
+    Staff((Staff))
+    Admin((Admin))
+
+    %% System Boundary
+    subgraph LMS["GPTK LMS"]
+        direction TB
+        Login[Login]
+        Circulation[Circulation]
+        BookMgmt[Book Management]
+        StudentMgmt[Student Management]
+        Reports[Reports]
+        Settings[Settings]
+        AuditLogs[Audit Logs]
+    end
+
+    %% Admin Access (Left to Right)
+    Admin --> Login
+    Admin --> Circulation
+    Admin --> BookMgmt
+    Admin --> StudentMgmt
+    Admin --> Reports
+    Admin --> Settings
+    Admin --> AuditLogs
+
+    %% Staff Access (Right Side - Layout Trick)
+    Login --> Staff
+    Circulation --> Staff
+    BookMgmt --> Staff
+    StudentMgmt --> Staff
+```

@@ -7,6 +7,7 @@ import { useSocket } from '../context/SocketContext';
 import GlassSelect from '../components/common/GlassSelect';
 import SmartExportModal from '../components/common/SmartExportModal';
 import SmartTransactionTable from '../components/history/SmartTransactionTable';
+import PdfPreviewModal from '../components/common/PdfPreviewModal';
 
 const TransactionHistoryPage = () => {
     const { t } = useLanguage();
@@ -23,6 +24,7 @@ const TransactionHistoryPage = () => {
     const [selectedTransaction, setSelectedTransaction] = useState(null);
     const [isDetailsOpen, setIsDetailsOpen] = useState(false);
     const [showExportModal, setShowExportModal] = useState(false);
+    const [pdfPreview, setPdfPreview] = useState({ isOpen: false, html: '', title: '', fileName: '' });
 
     // Selection
     const [selectedIds, setSelectedIds] = useState(new Set());
@@ -35,8 +37,25 @@ const TransactionHistoryPage = () => {
             .catch(err => console.error("Failed to fetch departments", err));
     }, []);
 
+    // Total Count
+    const [totalHistoryCount, setTotalHistoryCount] = useState(0);
+    const fetchTotalHistoryCount = async () => {
+        try {
+            const token = localStorage.getItem('auth_token');
+            const res = await fetch(`http://localhost:17221/api/circulation/history?limit=100000`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await res.json();
+            const list = Array.isArray(data) ? data : (data.data || []);
+            setTotalHistoryCount(list.length);
+        } catch (e) {
+            console.error("Failed to fetch total history count", e);
+        }
+    };
+
     useEffect(() => {
         fetchHistory();
+        fetchTotalHistoryCount();
     }, [search, statusFilter, departmentFilter, timeFilter]);
 
     const socket = useSocket();
@@ -89,7 +108,7 @@ const TransactionHistoryPage = () => {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await res.json();
-            setTransactions(Array.isArray(data) ? data : []);
+            setTransactions(Array.isArray(data) ? data : (data.data || []));
             setSelectedIds(new Set());
         } catch (err) {
             console.error(err);
@@ -214,7 +233,7 @@ const TransactionHistoryPage = () => {
             {showExportModal && (
                 <SmartExportModal
                     onClose={() => setShowExportModal(false)}
-                    totalCount={transactions.length}
+                    totalCount={totalHistoryCount || transactions.length}
                     filteredCount={transactions.length}
                     selectedCount={selectedIds.size}
                     entityName={t('history.entity_name')}
@@ -243,12 +262,61 @@ const TransactionHistoryPage = () => {
                         t('history.cols.accession'),
                         t('history.cols.fine')
                     ]}
-                    onExport={(scope, format) => {
-                        // Export Logic Reusing existing data
-                        let dataToExport = transactions;
+                    onExport={async (scope, format) => {
+                        // SmartExportModal handles printing via getExportData + preview. Avoid double fetch.
 
-                        if (scope === 'selected') {
-                            dataToExport = transactions.filter(t => selectedIds.has(t.id));
+
+                        let dataToExport = null;
+
+                        try {
+                            if (scope === 'all') {
+                                const params = new URLSearchParams();
+                                params.append('limit', '100000');
+                                const token = localStorage.getItem('auth_token');
+                                const res = await fetch(`http://localhost:17221/api/circulation/history?${params.toString()}`, {
+                                    headers: { 'Authorization': `Bearer ${token}` }
+                                });
+                                const data = await res.json();
+                                dataToExport = Array.isArray(data) ? data : (data.data || []);
+                            } else if (scope === 'filtered') {
+                                // Re-fetch with current filters but higher limit to ensure we get ALL filtered items
+                                const params = new URLSearchParams();
+                                if (search) params.append('search', search);
+                                if (statusFilter !== 'All') params.append('status', statusFilter);
+                                if (departmentFilter !== 'All') params.append('department', departmentFilter);
+                                if (timeFilter !== 'All') {
+                                    const now = new Date();
+                                    let startDate = new Date();
+                                    if (timeFilter === 'Today') startDate.setHours(0, 0, 0, 0);
+                                    else if (timeFilter === 'Week') startDate.setDate(now.getDate() - 7);
+                                    else if (timeFilter === 'Month') startDate.setDate(now.getDate() - 30);
+                                    else if (timeFilter === 'Year') startDate.setDate(now.getDate() - 365);
+
+                                    const year = startDate.getFullYear();
+                                    const month = String(startDate.getMonth() + 1).padStart(2, '0');
+                                    const day = String(startDate.getDate()).padStart(2, '0');
+                                    params.append('startDate', `${year}-${month}-${day}`);
+                                }
+                                params.append('limit', '100000');
+
+                                const token = localStorage.getItem('auth_token');
+                                const res = await fetch(`http://localhost:17221/api/circulation/history?${params.toString()}`, {
+                                    headers: { 'Authorization': `Bearer ${token}` }
+                                });
+                                const data = await res.json();
+                                dataToExport = Array.isArray(data) ? data : (data.data || []);
+                            } else if (scope === 'selected') {
+                                dataToExport = transactions.filter(t => selectedIds.has(t.id));
+                            }
+                        } catch (e) {
+                            console.error("Export fetch failed", e);
+                            alert("Failed to fetch data for export. Please try again.");
+                            return;
+                        }
+
+                        if (!dataToExport || dataToExport.length === 0) {
+                            alert("No data to export");
+                            return;
                         }
 
                         const cleanData = dataToExport.map(t => {
@@ -275,33 +343,43 @@ const TransactionHistoryPage = () => {
                             XLSX.utils.book_append_sheet(wb, ws, "History");
                             XLSX.writeFile(wb, `transaction_history_${new Date().toISOString().slice(0, 10)}.xlsx`);
                         } else if (format === 'csv') {
-                            const headers = Object.keys(cleanData[0]).join(',');
+                            const headers = Object.keys(cleanData[0]);
                             const rows = cleanData.map(row =>
                                 Object.values(row).map(val => `"${String(val || '').replace(/"/g, '""')}"`).join(',')
-                            ).join('\n');
+                            );
+                            const csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...rows].join("\n");
+                            const encodedUri = encodeURI(csvContent);
                             const link = document.createElement("a");
-                            link.href = "data:text/csv;charset=utf-8," + encodeURI(headers + "\n" + rows);
-                            link.download = "history.csv";
+                            link.setAttribute("href", encodedUri);
+                            link.setAttribute("download", `history_export_${new Date().toISOString().slice(0, 10)}.csv`);
+                            document.body.appendChild(link);
                             link.click();
+                            document.body.removeChild(link);
                         } else if (format === 'pdf') {
-                            const jsPDF = require('jspdf').jsPDF;
-                            const autoTable = require('jspdf-autotable').default;
-                            const doc = new jsPDF();
-                            doc.text('Transaction History', 14, 15);
-
-                            const tableColumns = ['Date', 'Action', 'Student', 'Book', 'Fine'];
-                            const tableRows = cleanData.map(r => [
-                                r.Date, r.Action, r.Student, r.Book.substring(0, 20), r.Fine
-                            ]);
-
-                            autoTable(doc, {
-                                head: [tableColumns], body: tableRows, startY: 20
-                            });
-                            doc.save('history.pdf');
+                            const { generatePrintContent } = require('../utils/SmartPrinterHandler');
+                            const content = generatePrintContent('Transaction History', cleanData, [
+                                { key: 'Date', label: 'Date' },
+                                { key: 'Action', label: 'Action' },
+                                { key: 'Student', label: 'Student' },
+                                { key: 'RegNo', label: 'Reg No' },
+                                { key: 'Book', label: 'Book' },
+                                { key: 'Fine', label: 'Fine' }
+                            ], {});
+                            setShowExportModal(false);
+                            setPdfPreview({ isOpen: true, html: content.html, title: 'Transaction History', fileName: `transaction_history_${new Date().toISOString().slice(0, 10)}` });
                         }
                     }}
+
                 />
             )}
+
+            <PdfPreviewModal
+                isOpen={pdfPreview.isOpen}
+                onClose={() => setPdfPreview(p => ({ ...p, isOpen: false }))}
+                htmlContent={pdfPreview.html}
+                title={pdfPreview.title}
+                fileName={pdfPreview.fileName}
+            />
         </div>
     );
 };

@@ -23,5 +23,6 @@ contextBridge.exposeInMainWorld(
     getPrinters: () => ipcRenderer.invoke('get-printers'),
     getScanners: () => ipcRenderer.invoke('get-scanners'),
     printSilent: (content, printerName) => ipcRenderer.invoke('print-silent', content, printerName),
+    printToPDF: (content, options) => ipcRenderer.invoke('print-to-pdf', content, options),
     openExternal: (url) => ipcRenderer.send('open-external', url)
 });

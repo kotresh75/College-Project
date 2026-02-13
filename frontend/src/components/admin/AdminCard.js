@@ -3,7 +3,7 @@ import { Mail, Phone, Edit2, Trash2, Shield, Activity, Lock, ToggleLeft, ToggleR
 
 const AdminCard = ({ admin, onEdit, onToggleStatus, onDelete, onResetPassword }) => {
     const isActive = admin.status === 'Active';
-    const isRoot = admin.email === 'veerkotresh@gmail.com';
+    const isRoot = !!admin.is_founder;
 
     return (
         <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '15px', position: 'relative', borderTop: isRoot ? '3px solid #f6e05e' : '1px solid var(--glass-border)' }}>
@@ -48,7 +48,7 @@ const AdminCard = ({ admin, onEdit, onToggleStatus, onDelete, onResetPassword })
                 </div>
             </div>
 
-            {/* Actions (Only if not Root, or if Root self-edit/view logs logic but here generalized) */}
+            {/* Actions */}
             <div style={{ borderTop: '1px solid var(--glass-border)', paddingTop: '15px', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
                 {!isRoot && (
                     <>

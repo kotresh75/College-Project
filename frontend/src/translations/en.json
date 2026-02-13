@@ -22,7 +22,10 @@
             "pdf": "PDF",
             "print": "Print",
             "preview_print": "Preview & Print",
-            "export_btn": "Export"
+            "export_btn": "Export",
+            "content_label": "Content",
+            "include_table": "Data Table",
+            "include_graph": "Visual Graphs"
         },
         "confirm": "Confirm",
         "success": "Success",
@@ -31,7 +34,13 @@
         "dashboard": "Dashboard",
         "logout": "Logout",
         "profile": "Profile",
-        "close": "Close"
+        "close": "Close",
+        "today": "Today",
+        "this_week": "This Week",
+        "this_month": "This Month",
+        "this_year": "This Year",
+        "paid": "Paid",
+        "waived": "Waived"
     },
     "header": {
         "institution_name": "Government Polytechnic, Kampli",
@@ -282,7 +291,23 @@
         "otp_sent": "OTP sent to your email.",
         "otp_verified": "OTP Verified.",
         "pwd_reset_success": "Password reset successfully!",
-        "passwords_mismatch": "Passwords do not match"
+        "passwords_mismatch": "Passwords do not match",
+        "setup": {
+            "title": "Initial Setup",
+            "subtitle": "Create your administrator account to get started",
+            "name_placeholder": "Full Name",
+            "email_placeholder": "Email Address",
+            "password_placeholder": "Password (min 6 characters)",
+            "confirm_placeholder": "Confirm Password",
+            "submit_btn": "Create Admin & Continue",
+            "checking": "Checking system status...",
+            "err_name": "Name is required",
+            "err_email": "Email is required",
+            "err_password": "Password must be at least 6 characters",
+            "err_mismatch": "Passwords do not match",
+            "err_failed": "Setup failed",
+            "err_server": "Server unreachable. Check connection."
+        }
     },
     "catalog": {
         "search_placeholder": "Search by Title, Author, ISBN...",
@@ -522,10 +547,31 @@
         "title": "Library Insights",
         "subtitle": "Academic Performance & Usage Metrics",
         "tabs": {
+            "daily": "Daily Activity",
+            "analytics": "Analytics & Insights",
             "circulation": "Circulation",
             "financial": "Financials",
             "inventory": "Inventory"
         },
+        "sections": {
+            "most_demanded": "Most Demanded Books",
+            "quick_stats": "Quick Stats"
+        },
+        "table": {
+            "date": "Date",
+            "issued": "Issued",
+            "returned": "Returned",
+            "fine": "Fine"
+        },
+        "stats": {
+            "active_issues": "Active Issues",
+            "overdue": "Overdue",
+            "total_books": "Total Books",
+            "members": "Members"
+        },
+        "no_activity": "No activity",
+        "no_trending": "No trending books",
+        "total": "TOTAL",
         "period": {
             "7days": "Last 7 Days",
             "30days": "Last 30 Days",
@@ -541,9 +587,24 @@
             "circ_title": "Circulation Report",
             "fin_title": "Financial Report",
             "inv_title": "Inventory Report",
+            "summary_title": "Daily Summary Report",
+            "today": "Today",
+            "data_source": "Data Source",
+            "print_content": "Print Content",
+            "tables_only": "Tables Only",
+            "visuals_only": "Visuals Only",
+            "tables_desc": "All data in table format",
+            "visuals_desc": "Charts & graphs as image",
+            "both": "Both",
+            "both_desc": "Tables + Visual Analytics",
+            "all_sections": "All report sections included",
+            "includes": "Includes:",
+            "with_visuals": "Visual Charts",
+            "date": "Date",
             "dates": "Date",
             "issues": "Issues",
             "returns": "Returns",
+            "fine": "Fine Amount",
             "renewals": "Renewals",
             "desc": "Description",
             "amount": "Amount",
@@ -586,6 +647,8 @@
             },
             "inv": {
                 "total_volumes": "Total Volumes",
+                "total_titles": "Total Titles",
+                "estimated_value": "Estimated Value",
                 "unique_titles": "Unique Titles",
                 "total_value": "Total Value",
                 "estimated_cost": "Estimated cost",

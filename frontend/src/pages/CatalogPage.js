@@ -12,6 +12,7 @@ import ExportModal from '../components/books/ExportModal';
 import SmartBookDetailModal from '../components/books/SmartBookDetailModal';
 import ConfirmationModal from '../components/common/ConfirmationModal';
 import SmartBookTable from '../components/books/SmartBookTable';
+import PdfPreviewModal from '../components/common/PdfPreviewModal';
 
 const CatalogPage = () => {
     const socket = useSocket();
@@ -42,6 +43,7 @@ const CatalogPage = () => {
     const [showManageModal, setShowManageModal] = useState(false);
     const [showImportModal, setShowImportModal] = useState(false);
     const [showExportModal, setShowExportModal] = useState(false);
+    const [pdfPreview, setPdfPreview] = useState({ isOpen: false, html: '', title: '', fileName: '' });
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [confirmationModal, setConfirmationModal] = useState({
         isOpen: false,
@@ -135,17 +137,36 @@ const CatalogPage = () => {
         const handleUpdate = () => {
             console.log("Book Update: Refreshing");
             fetchBooks();
+            fetchTotalCount(); // Refresh total count on updates
         };
         socket.on('book_update', handleUpdate);
         return () => socket.off('book_update', handleUpdate);
-    }, [socket, search, category, sortBy]); // Depend on search, category, sortBy to ensure fetchBooks has latest state
+    }, [socket, search, category, sortBy]);
+
+    // Fetch Total Count separately
+    const [totalBooksCount, setTotalBooksCount] = useState(0);
+    const fetchTotalCount = async () => {
+        try {
+            // Fetch all books to get count. If backend supported /count endpoint it would be better.
+            const res = await fetch(`http://localhost:17221/api/books?limit=100000`);
+            const data = await res.json();
+            const allBooks = Array.isArray(data) ? data : (data.data || []);
+            setTotalBooksCount(allBooks.length);
+        } catch (e) {
+            console.error("Failed to fetch total count", e);
+        }
+    };
+
+    useEffect(() => {
+        fetchTotalCount();
+    }, []);
 
     // Handlers
     const toggleSelectAll = () => {
         if (selectedIds.size === books.length) {
             setSelectedIds(new Set());
         } else {
-            setSelectedIds(new Set(books.map(b => b.key || b.isbn))); // ISBN as key?
+            setSelectedIds(new Set(books.map(b => b.isbn))); // ISBN as key
         }
     };
 
@@ -343,6 +364,7 @@ const CatalogPage = () => {
                     isOpen={showImportModal}
                     onClose={() => setShowImportModal(false)}
                     title="Smart Import Books (CSV/Excel)"
+                    sampleFile="/book_sample.csv"
                     duplicateKey="isbn"
                     columns={[
                         { key: 'isbn', label: 'ISBN', required: true, width: '140px', aliases: ['id', 'code'] },
@@ -394,138 +416,7 @@ const CatalogPage = () => {
                         }
                         return row;
                     }}
-                    extraActions={({ data, setData, setLoading }) => (
-                        <button
-                            className="primary-glass-btn"
-                            style={{ fontSize: '0.85rem', padding: '6px 12px', height: 'auto', minWidth: '130px' }}
-                            disabled={!!autoFillProgress}
-                            onClick={async () => {
-                                if (!navigator.onLine) {
-                                    setSuccessModal({ isOpen: true, title: 'Offline', message: "You are offline. Connect to the internet to continue." });
-                                    return;
-                                }
 
-                                const rowsToFetch = data.filter(row => row.isbn && !String(row.isbn).startsWith('AG-'));
-                                if (rowsToFetch.length === 0) {
-                                    setSuccessModal({ isOpen: true, title: t('common.warning'), message: "No valid ISBNs to fetch (AG- prefixes are skipped)." });
-                                    return;
-                                }
-
-                                setAutoFillProgress(`0/${rowsToFetch.length}`);
-                                // Don't block whole UI with setLoading(true) if we want to show text update on button
-                                // But if we want to prevent other actions, we can transparently block or just disable button.
-                                // We'll keep setLoading(false) to allow interaction but disable THIS button.
-
-                                const fetchBookDetails = async (isbn) => {
-                                    const cleanIsbn = String(isbn).replace(/-/g, '').trim();
-                                    const controller = new AbortController();
-                                    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8s timeout for combined
-
-                                    try {
-                                        // 1. Try Google Books API
-                                        const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=isbn:${cleanIsbn}`, { signal: controller.signal });
-
-                                        if (res.status !== 429) {
-                                            const resData = await res.json();
-                                            if (resData.items && resData.items.length > 0) {
-                                                clearTimeout(timeoutId);
-                                                return { isbn: isbn, id: null, info: resData.items[0].volumeInfo };
-                                            }
-                                        } else {
-                                            await new Promise(r => setTimeout(r, 1000)); // Backoff
-                                        }
-
-                                        // 2. Fallback: Open Library API
-                                        const olRes = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${cleanIsbn}&format=json&jscmd=data`, { signal: controller.signal });
-                                        if (olRes.ok) {
-                                            const olData = await olRes.json();
-                                            const key = `ISBN:${cleanIsbn}`;
-                                            if (olData[key]) {
-                                                const d = olData[key];
-                                                clearTimeout(timeoutId);
-                                                return {
-                                                    isbn: isbn,
-                                                    id: null,
-                                                    info: {
-                                                        title: d.title,
-                                                        authors: d.authors ? d.authors.map(a => a.name) : [],
-                                                        publisher: d.publishers ? d.publishers.map(p => p.name).join(', ') : '',
-                                                        imageLinks: { thumbnail: d.cover?.medium || d.cover?.large || '' }
-                                                    }
-                                                };
-                                            }
-                                        }
-
-                                    } catch (e) {
-                                        // Ignore abort/network errors
-                                    } finally {
-                                        clearTimeout(timeoutId);
-                                    }
-                                    return null;
-                                };
-
-                                let updatedCount = 0;
-                                const BATCH_SIZE = 5; // Reduced for reliability
-
-                                for (let i = 0; i < rowsToFetch.length; i += BATCH_SIZE) {
-                                    const batch = rowsToFetch.slice(i, i + BATCH_SIZE);
-
-                                    // Update Progress UI
-                                    setAutoFillProgress(`${Math.min(i + batch.length, rowsToFetch.length)}/${rowsToFetch.length}`);
-
-                                    // Fetch batch in parallel
-                                    // Pass row.id so we can match it back accurately even if ISBN is duplicated in file (unlikely but safe)
-                                    const results = await Promise.all(batch.map(async (row) => {
-                                        const details = await fetchBookDetails(row.isbn);
-                                        return details ? { ...details, id: row.id } : null;
-                                    }));
-
-                                    const validResults = results.filter(r => r !== null);
-
-                                    if (validResults.length > 0) {
-                                        // Functional Update: Merges new info into CURRENT state (preserving user edits)
-                                        setData(prevData => {
-                                            return prevData.map(currentRow => {
-                                                const match = validResults.find(r => r.id === currentRow.id);
-                                                if (match) {
-                                                    const details = match.info;
-                                                    // Merge details
-                                                    return {
-                                                        ...currentRow,
-                                                        title: details.title || currentRow.title,
-                                                        author: details.authors ? details.authors.join(', ') : currentRow.author,
-                                                        publisher: details.publisher || currentRow.publisher,
-                                                        // Ensure HTTPS for images
-                                                        cover_image_url: details.imageLinks?.thumbnail?.replace('http:', 'https:') || currentRow.cover_image_url
-                                                    };
-                                                }
-                                                return currentRow;
-                                            });
-                                        });
-                                        updatedCount += validResults.length;
-                                    }
-                                }
-
-                                setAutoFillProgress('');
-                                setSuccessModal({
-                                    isOpen: true,
-                                    title: t('catalog.auto_fill_complete_title'),
-                                    message: t('catalog.auto_fill_complete_msg').replace('{count}', updatedCount)
-                                });
-                            }}
-                        >
-                            {autoFillProgress ? (
-                                <>
-                                    <div className="spinner-sm" style={{ borderTopColor: 'white', marginRight: 8 }}></div>
-                                    Fetcing {autoFillProgress}
-                                </>
-                            ) : (
-                                <>
-                                    <BookOpen size={14} style={{ marginRight: 6 }} /> {t('catalog.auto_fill_btn')}
-                                </>
-                            )}
-                        </button>
-                    )}
                     onImport={async (booksData) => {
                         const res = await fetch('http://localhost:17221/api/books/bulk', {
                             method: 'POST',
@@ -551,22 +442,12 @@ const CatalogPage = () => {
             {showExportModal && (
                 <ExportModal
                     onClose={() => setShowExportModal(false)}
-                    totalBooks={books.length}
+                    totalBooks={totalBooksCount || books.length}
+                    selectedIds={selectedIds}
                     selectedCount={selectedIds.size}
-                    filteredCount={books.filter(b => {
-                        const matchesSearch = b.title.toLowerCase().includes(search.toLowerCase()) ||
-                            b.author.toLowerCase().includes(search.toLowerCase()) ||
-                            b.isbn.includes(search);
-                        const matchesCategory = category === 'All' || b.category === category;
-                        return matchesSearch && matchesCategory;
-                    }).length}
-                    data={books.filter(b => {
-                        const matchesSearch = b.title.toLowerCase().includes(search.toLowerCase()) ||
-                            b.author.toLowerCase().includes(search.toLowerCase()) ||
-                            b.isbn.includes(search);
-                        const matchesCategory = category === 'All' || b.category === category;
-                        return matchesSearch && matchesCategory;
-                    }).map(b => ({
+                    filteredCount={books.length} // Use books.length directly as it is already filtered by server
+                    data={books.map(b => ({ // Don't re-filter here!
+                        Cover: b.cover_image_url || b.cover_image,
                         ISBN: b.isbn,
                         Title: b.title,
                         Author: b.author,
@@ -576,42 +457,65 @@ const CatalogPage = () => {
                         Total: b.total_copies || 0,
                         Available: b.available_copies || 0
                     }))}
-                    columns={['ISBN', 'Title', 'Author', 'Publisher', 'Department', 'Location', 'Total', 'Available']}
-                    onFetchAll={async () => {
-                        try {
-                            const query = new URLSearchParams({ search, department: category, sort: sortBy, limit: 10000 }).toString();
-                            const res = await fetch(`http://localhost:17221/api/books?${query}`);
-                            const data = await res.json();
-                            return (Array.isArray(data) ? data : []).map(b => ({
-                                ISBN: b.isbn,
-                                Title: b.title,
-                                Author: b.author,
-                                Publisher: b.publisher,
-                                Department: b.department_name || b.category || '-',
-                                Location: b.location || 'Main Stack',
-                                Total: b.total_copies || 0,
-                                Available: b.available_copies || 0
-                            }));
-                        } catch (e) { console.error(e); return []; }
+                    columns={[
+                        { key: 'Cover', label: 'Cover', render: (row) => row.Cover ? `<img src="${row.Cover}" style="height:40px; width:auto; border-radius:3px;" />` : '' },
+                        'ISBN', 'Title', 'Author', 'Publisher', 'Department', 'Location', 'Total', 'Available'
+                    ]}
+                    onFetchData={async (scope) => {
+                        // Logic to get data based on scope for Printing
+                        let dataToExport = books;
+                        if (scope === 'all') {
+                            try {
+                                // REMOVED &department=All to fetch truly all books
+                                const res = await fetch(`http://localhost:17221/api/books?limit=100000`);
+                                const data = await res.json();
+                                dataToExport = Array.isArray(data) ? data : (data.data || []);
+                            } catch (e) {
+                                console.error("Failed to fetch all books", e);
+                                dataToExport = [];
+                            }
+                        } else if (scope === 'selected') {
+                            dataToExport = books.filter(b => selectedIds.has(b.isbn));
+                        } else if (scope === 'filtered') {
+                            dataToExport = books; // Use current books state directly
+                        }
+
+                        // Map to Print Format
+                        return dataToExport.map(b => ({
+                            Cover: b.cover_image_url || b.cover_image,
+                            ISBN: b.isbn,
+                            Title: b.title,
+                            Author: b.author,
+                            Publisher: b.publisher,
+                            Department: b.department_name || b.category || '-',
+                            Location: b.location || 'Main Stack',
+                            Total: b.total_copies || 0,
+                            Available: b.available_copies || 0
+                        }));
                     }}
-                    onExport={(scope, format) => {
+                    onExport={async (scope, format) => {
                         // 1. Determine Data Source
                         let dataToExport = books;
 
-                        if (scope === 'selected') {
-                            dataToExport = books.filter(b => selectedIds.has(b.key || b.isbn));
+                        if (scope === 'all') {
+                            try {
+                                // REMOVED &department=All
+                                const res = await fetch(`http://localhost:17221/api/books?limit=100000`);
+                                const data = await res.json();
+                                dataToExport = Array.isArray(data) ? data : (data.data || []);
+                            } catch (e) {
+                                console.error("Failed to fetch all books", e);
+                                dataToExport = [];
+                            }
+                        } else if (scope === 'selected') {
+                            dataToExport = books.filter(b => selectedIds.has(b.isbn));
                         } else if (scope === 'filtered') {
-                            dataToExport = books.filter(b => {
-                                const matchesSearch = b.title.toLowerCase().includes(search.toLowerCase()) ||
-                                    b.author.toLowerCase().includes(search.toLowerCase()) ||
-                                    b.isbn.includes(search);
-                                const matchesCategory = category === 'All' || b.category === category;  // Assuming category matches value
-                                return matchesSearch && matchesCategory;
-                            });
+                            dataToExport = books; // Use current books state directly
                         }
 
                         // 2. Prepare Data for Export (Clean fields)
                         const cleanData = dataToExport.map(b => ({
+                            Cover: b.cover_image_url || b.cover_image,
                             ISBN: b.isbn,
                             Title: b.title,
                             Author: b.author,
@@ -626,57 +530,52 @@ const CatalogPage = () => {
                         // 3. Export Logic
                         if (format === 'xlsx') {
                             const XLSX = require('xlsx'); // Using require to avoid top-level import crash if missing
-                            const ws = XLSX.utils.json_to_sheet(cleanData);
+                            // Exclude Cover for Excel
+                            const excelData = cleanData.map(({ Cover, ...rest }) => rest);
+                            const ws = XLSX.utils.json_to_sheet(excelData);
                             const wb = XLSX.utils.book_new();
                             XLSX.utils.book_append_sheet(wb, ws, "Books");
                             XLSX.writeFile(wb, `library_export_${new Date().toISOString().slice(0, 10)}.xlsx`);
                         } else if (format === 'csv') {
-                            // Manual CSV generation
-                            const headers = Object.keys(cleanData[0]).join(',');
-                            const rows = cleanData.map(row =>
-                                Object.values(row).map(val => `"${String(val || '').replace(/"/g, '""')}"`).join(',')
+                            // Manual CSV generation with UTF-8 BOM
+                            // Exclude Cover for CSV
+                            const csvData = cleanData.map(({ Cover, ...rest }) => rest);
+                            const headers = Object.keys(csvData[0]).join(',');
+                            const rows = csvData.map(row =>
+                                Object.values(row).map(val => {
+                                    const str = String(val || '');
+                                    // Quote if contains comma, newline or quote
+                                    if (str.includes(',') || str.includes('\n') || str.includes('"')) {
+                                        return `"${str.replace(/"/g, '""')}"`;
+                                    }
+                                    return str;
+                                }).join(',')
                             ).join('\n');
-                            const csvContent = "data:text/csv;charset=utf-8," + headers + "\n" + rows;
-                            const encodedUri = encodeURI(csvContent);
+
+                            // Add BOM \uFEFF for Excel to recognize UTF-8
+                            const csvContent = '\uFEFF' + headers + "\n" + rows;
+                            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
                             const link = document.createElement("a");
-                            link.setAttribute("href", encodedUri);
+                            link.href = URL.createObjectURL(blob);
                             link.setAttribute("download", `library_export_${new Date().toISOString().slice(0, 10)}.csv`);
                             document.body.appendChild(link);
                             link.click();
                             document.body.removeChild(link);
                         } else if (format === 'pdf') {
-                            // PDF Export using jspdf + jspdf-autotable
-                            const jsPDF = require('jspdf').jsPDF;
-                            const autoTable = require('jspdf-autotable').default;
-                            const doc = new jsPDF();
-
-                            // Title
-                            doc.setFontSize(16);
-                            doc.text('Library Book Export', 14, 15);
-                            doc.setFontSize(10);
-                            doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 22);
-
-                            // Table
-                            const tableColumns = ['ISBN', 'Title', 'Author', 'Publisher', 'Dept', 'Total', 'Avail'];
-                            const tableRows = cleanData.map(b => [
-                                b.ISBN,
-                                (b.Title || '').substring(0, 30) + ((b.Title || '').length > 30 ? '...' : ''),
-                                (b.Author || '').substring(0, 20) + ((b.Author || '').length > 20 ? '...' : ''),
-                                (b.Publisher || '').substring(0, 15) || '-',
-                                (b.Department || '').substring(0, 10) || '-',
-                                b.TotalCopies || 0,
-                                b.AvailableCopies || 0
-                            ]);
-
-                            autoTable(doc, {
-                                head: [tableColumns],
-                                body: tableRows,
-                                startY: 28,
-                                styles: { fontSize: 8, cellPadding: 2 },
-                                headStyles: { fillColor: [59, 130, 246] }
-                            });
-
-                            doc.save(`library_export_${new Date().toISOString().slice(0, 10)}.pdf`);
+                            const { generatePrintContent } = require('../utils/SmartPrinterHandler');
+                            const content = generatePrintContent("Book Catalog", cleanData, [
+                                { key: 'Cover', label: 'Cover', render: (row) => row.Cover ? `<img src="${row.Cover}" style="height:40px; width:auto; border-radius:3px;" />` : '' },
+                                { key: 'ISBN', label: 'ISBN' },
+                                { key: 'Title', label: 'Title' },
+                                { key: 'Author', label: 'Author' },
+                                { key: 'Publisher', label: 'Publisher' },
+                                { key: 'Department', label: 'Dept' },
+                                { key: 'Location', label: 'Loc' },
+                                { key: 'TotalCopies', label: 'Total' },
+                                { key: 'AvailableCopies', label: 'Avail' }
+                            ], {});
+                            setShowExportModal(false);
+                            setPdfPreview({ isOpen: true, html: content.html, title: 'Book Catalog', fileName: `library_export_${new Date().toISOString().slice(0, 10)}` });
                         }
                     }}
                 />
@@ -738,6 +637,14 @@ const CatalogPage = () => {
                 confirmText="OK"
                 cancelText={null}
                 zIndex={3100}
+            />
+
+            <PdfPreviewModal
+                isOpen={pdfPreview.isOpen}
+                onClose={() => setPdfPreview(p => ({ ...p, isOpen: false }))}
+                htmlContent={pdfPreview.html}
+                title={pdfPreview.title}
+                fileName={pdfPreview.fileName}
             />
 
             <style>{`

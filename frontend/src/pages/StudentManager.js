@@ -17,6 +17,7 @@ import PromotionModal from '../components/students/PromotionModal';
 import SmartStudentTable from '../components/students/SmartStudentTable';
 import StatusModal from '../components/common/StatusModal';
 import { useLanguage } from '../context/LanguageContext';
+import PdfPreviewModal from '../components/common/PdfPreviewModal';
 
 const StudentManager = () => {
     const { t } = useLanguage();
@@ -38,6 +39,7 @@ const StudentManager = () => {
     const [showEditModal, setShowEditModal] = useState(false);
     const [showBulkEdit, setShowBulkEdit] = useState(false);
     const [showExportModal, setShowExportModal] = useState(false);
+    const [pdfPreview, setPdfPreview] = useState({ isOpen: false, html: '', title: '', fileName: '' });
     const [showDetailModal, setShowDetailModal] = useState(false);
     const [showPromotionModal, setShowPromotionModal] = useState(false);
 
@@ -104,10 +106,29 @@ const StudentManager = () => {
         const handleUpdate = () => {
             console.log("Real-time update: Refreshing Students");
             fetchStudents(page);
+            fetchGlobalCount(); // Refresh total count
         };
         socket.on('student_update', handleUpdate);
         return () => socket.off('student_update', handleUpdate);
     }, [socket, fetchStudents, page]);
+
+    // Fetch Global Count
+    const [globalTotalStudentsCount, setGlobalTotalStudentsCount] = useState(0);
+    const fetchGlobalCount = async () => {
+        try {
+            const res = await axios.get(`http://localhost:17221/api/students?limit=100000`);
+            const data = (res.data && res.data.data) || [];
+            if (Array.isArray(data)) {
+                setGlobalTotalStudentsCount(data.length);
+            }
+        } catch (e) {
+            console.error("Failed to fetch global count", e);
+        }
+    };
+
+    useEffect(() => {
+        fetchGlobalCount();
+    }, []);
 
     // --- Selection Logic ---
     const handleSelectAll = (e) => {
@@ -286,7 +307,7 @@ const StudentManager = () => {
             const body = {
                 scope,
                 format,
-                filters: { search, department: filters.department, semester: filters.semester },
+                filters: scope === 'all' ? {} : { search, department: filters.department, semester: filters.semester },
                 ids: Array.from(selectedStudents)
             };
 
@@ -307,16 +328,58 @@ const StudentManager = () => {
                     showSuccess("Success", "Export started.");
                 } else {
                     const data = await res.json();
-                    const printWindow = window.open('', '_blank');
-                    printWindow.document.write('<html><head><title>Print Students</title><style>body{font-family:sans-serif;} table { width: 100%; border-collapse: collapse; } th, td { border: 1px solid #ddd; padding: 8px; text-align: left; } th { background-color: #f2f2f2; } h2{text-align:center;}</style></head><body>');
-                    printWindow.document.write(`<h2>Student List (${data.length})</h2>`);
-                    printWindow.document.write('<table><thead><tr><th>Name</th><th>Reg No</th><th>Dept</th><th>Sem</th><th>Status</th><th>Phone</th></tr></thead><tbody>');
-                    data.forEach(s => {
-                        printWindow.document.write(`<tr><td>${s.full_name}</td><td>${s.register_number}</td><td>${s.department}</td><td>${s.semester}</td><td>${s.status}</td><td>${s.phone}</td></tr>`);
-                    });
-                    printWindow.document.write('</tbody></table></body></html>');
-                    printWindow.document.close();
-                    setTimeout(() => printWindow.print(), 500);
+
+                    // Prepare data for Client-Side Export
+                    const cleanData = data.map(s => ({
+                        Photo: s.profile_image,
+                        Name: s.full_name,
+                        RegNo: s.register_number,
+                        Department: s.department || s.dept_id || '-',
+                        Semester: s.semester || '-',
+                        Email: s.email || '-',
+                        Phone: s.phone || '-',
+                        Status: s.status || 'Active'
+                    }));
+
+                    if (format === 'xlsx') {
+                        try {
+                            const XLSX = require('xlsx');
+                            // Exclude Photo for Excel
+                            const excelData = cleanData.map(({ Photo, ...rest }) => rest);
+                            const ws = XLSX.utils.json_to_sheet(excelData);
+                            const wb = XLSX.utils.book_new();
+                            XLSX.utils.book_append_sheet(wb, ws, "Students");
+                            XLSX.writeFile(wb, `students_export_${new Date().toISOString().slice(0, 10)}.xlsx`);
+                            showSuccess("Success", "Export generated successfully.");
+                        } catch (e) {
+                            console.error("Excel export error:", e);
+                            showError("Export Failed", "Could not generate Excel file.");
+                        }
+                    } else if (format === 'pdf') {
+                        try {
+                            const { generatePrintContent } = require('../utils/SmartPrinterHandler');
+                            const content = generatePrintContent("Student List", cleanData, [
+                                {
+                                    key: 'Photo',
+                                    label: 'Photo',
+                                    render: (item) => item.Photo ? `<img src="${item.Photo}" class="student-photo" width="32" height="32" onerror="this.style.display='none'" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:1px solid #ccc;">` : ''
+                                },
+                                { key: 'Name', label: 'Name' },
+                                { key: 'RegNo', label: 'Reg No' },
+                                { key: 'Department', label: 'Department' },
+                                { key: 'Semester', label: 'Sem' },
+                                { key: 'Status', label: 'Status' }
+                            ], {});
+                            setShowExportModal(false);
+                            setPdfPreview({ isOpen: true, html: content.html, title: 'Student List', fileName: `students_export_${new Date().toISOString().slice(0, 10)}` });
+                        } catch (e) {
+                            console.error("PDF export error:", e);
+                            showError("Export Failed", "Could not generate PDF.");
+                        }
+                    } else {
+                        // Fallback fallback (shouldn't happen if modal handles print)
+                        console.warn("Unknown format:", format);
+                    }
                 }
             } else {
                 showError("Export Failed", "Could not export data.");
@@ -624,39 +687,38 @@ const StudentManager = () => {
                 <StudentExportModal
                     onClose={() => setShowExportModal(false)}
                     onExport={handleExport}
-                    totalStudents={totalStudentsCount}
+                    totalStudents={globalTotalStudentsCount || totalStudentsCount}
                     selectedCount={selectedStudents.size}
                     selectedIds={selectedStudents}
-                    filteredCount={students.length}
+                    filteredCount={totalStudentsCount} // Use pagination total, which is the total filtered items
                     data={students.map(s => ({
                         id: s.id, // Ensure ID is present for matching
+                        Photo: s.profile_image,
                         Name: s.full_name,
                         'Father Name': s.father_name,
                         RegNo: s.register_number,
-                        Dept: s.department,
+                        Dept: s.department_name || s.department,
                         Sem: s.semester,
                         Status: s.status,
                         Phone: s.phone,
                         DOB: s.dob ? s.dob.split('-').reverse().join('/') : ''
                     }))}
-                    columns={['Name', 'Father Name', 'RegNo', 'Dept', 'Sem', 'Status', 'Phone', 'DOB']}
+                    columns={[
+                        { key: 'Photo', label: 'Photo', render: (row) => row.Photo ? `<img src="${row.Photo}" style="height:40px; width:40px; object-fit:cover; border-radius:50%;" />` : '' },
+                        'Name', 'Father Name', 'RegNo', 'Dept', 'Sem', 'Status', 'Phone', 'DOB'
+                    ]}
                     onFetchAll={async () => {
                         try {
-                            const query = new URLSearchParams({
-                                search,
-                                department: filters.department,
-                                semester: filters.semester,
-                                sortBy: sortConfig.key,
-                                order: sortConfig.direction,
-                                limit: 10000 // Fetch all
-                            }).toString();
-                            const res = await fetch(`http://localhost:17221/api/students?${query}`);
+                            // strictly fetch ALL for export/print
+                            const res = await fetch(`http://localhost:17221/api/students?limit=100000`);
                             const data = await res.json();
                             return (data.data || []).map(s => ({
                                 id: s.id, // Include ID for selection matching
+                                Photo: s.profile_image,
                                 Name: s.full_name,
+                                'Father Name': s.father_name,
                                 RegNo: s.register_number,
-                                Dept: s.department,
+                                Dept: s.department_name || s.department,
                                 Sem: s.semester,
                                 Status: s.status,
                                 Phone: s.phone,
@@ -697,6 +759,15 @@ const StudentManager = () => {
                 type={statusModal.type}
                 title={statusModal.title}
                 message={statusModal.message}
+            />
+
+            <PdfPreviewModal
+                isOpen={pdfPreview.isOpen}
+                onClose={() => setPdfPreview(p => ({ ...p, isOpen: false }))}
+                htmlContent={pdfPreview.html}
+                title={pdfPreview.title}
+                fileName={pdfPreview.fileName}
+                enableImageToggle={true}
             />
         </div>
     );

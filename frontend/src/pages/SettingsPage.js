@@ -14,8 +14,6 @@ import StatusModal from '../components/common/StatusModal';
 import { usePreferences } from '../context/PreferencesContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useSession } from '../context/SessionContext';
-import PrintPreviewModal from '../components/common/PrintPreviewModal';
-import { generatePrintContent } from '../utils/SmartPrinterHandler';
 import GlassSelect from '../components/common/GlassSelect';
 
 // Help functions
@@ -305,34 +303,17 @@ const HardwareTab = ({ settings, handleChange, handleSave, onTestPrint, showNoti
     const [testInput, setTestInput] = useState('');
     const [lastScanned, setLastScanned] = useState(null);
     const [deviceStatus, setDeviceStatus] = useState({
-        scanner: 'disconnected', // disconnected, connected, error
-        printer: 'disconnected'
+        scanner: 'disconnected' // disconnected, connected, error
     });
     const [autoFocusMode, setAutoFocusMode] = useState(false);
     const testInputRef = useRef(null);
-    const [availablePrinters, setAvailablePrinters] = useState([]);
     const [availableScanners, setAvailableScanners] = useState([]);
-
-    // Print Review State
-    const [showReviewModal, setShowReviewModal] = useState(false);
 
     // Fetch System Hardware on Mount
     useEffect(() => {
         const fetchHardware = async () => {
             if (window.electron) {
-                // 1. Fetch Printers
-                if (window.electron.getPrinters) {
-                    try {
-                        const printers = await window.electron.getPrinters();
-                        const printerOptions = printers.map(p => ({
-                            value: p.name,
-                            label: p.name + (p.isDefault ? ' (Default)' : '')
-                        }));
-                        setAvailablePrinters(printerOptions);
-                    } catch (e) { console.error(e); }
-                }
-
-                // 2. Fetch Scanners (HID)
+                // Fetch Scanners (HID)
                 if (window.electron.getScanners) {
                     try {
                         const scanners = await window.electron.getScanners();
@@ -345,10 +326,6 @@ const HardwareTab = ({ settings, handleChange, handleSave, onTestPrint, showNoti
                 }
             } else {
                 // Fallback for browser testing
-                setAvailablePrinters([
-                    { value: 'thermal_1', label: 'POS-80C (Simulated)' },
-                    { value: 'thermal_2', label: 'Epson TM-T82 (Simulated)' }
-                ]);
                 setAvailableScanners([
                     { value: 'hid_sim', label: '📷 Honeywell 1900 (Simulated)' }
                 ]);
@@ -392,24 +369,22 @@ const HardwareTab = ({ settings, handleChange, handleSave, onTestPrint, showNoti
     // Simulate Device Scan
     const handleScanDevices = () => {
         setScanning(true);
-        setDeviceStatus({ scanner: 'checking', printer: 'checking' });
+        setDeviceStatus({ scanner: 'checking' });
 
         setTimeout(() => {
             setScanning(false);
-            const printerConnected = settings.app_hardware?.defaultPrinter && settings.app_hardware?.defaultPrinter !== '';
 
             // Assume scanner connected if we found any HID devices
             const scannerConnected = availableScanners.length > 0;
 
             setDeviceStatus({
-                scanner: scannerConnected ? 'connected' : 'disconnected',
-                printer: printerConnected ? 'connected' : 'disconnected'
+                scanner: scannerConnected ? 'connected' : 'disconnected'
             });
 
-            if (printerConnected) {
-                showNotification(t('settings.hardware.diag_title'), "Hardware Scan Complete", "success");
+            if (scannerConnected) {
+                showNotification(t('settings.hardware.diag_title'), "Scanner Found", "success");
             } else {
-                showNotification(t('settings.hardware.diag_title'), "Scanner Found. No Printer.", "warning");
+                showNotification(t('settings.hardware.diag_title'), "No Scanner Found", "warning");
             }
         }, 1500);
     };
@@ -422,28 +397,6 @@ const HardwareTab = ({ settings, handleChange, handleSave, onTestPrint, showNoti
         return testInput;
     };
 
-    const handleConfirmPrint = () => {
-        setShowReviewModal(false);
-        // Pass current settings to print handler to support Silent/Preview modes
-        if (onTestPrint) {
-            // If parent provided a handler, use it (assumed it calls SmartPrinterHandler)
-            // But wait, onTestPrint is usually just `() => SmartPrinterHandler.printDocument(...)`
-            // We need to make sure the PARENT calls it with settings, OR we call it directly here if we want to test.
-            // Looking at usage, onTestPrint is passed from SettingsPage props. 
-            // Let's assume onTestPrint in parent is `() => printDocument(demoContent, settings)`.
-            // If not, we should probably call printDocument directly here for the TEST.
-            // However, to be safe and consistent with previous code:
-            onTestPrint();
-        }
-    };
-
-    // Prepare Printer Options
-    const finalPrinterOptions = [
-        { value: '', label: '-- Select Printer --' },
-        { value: 'system_default', label: t('settings.hardware.mode_system') },
-        ...availablePrinters,
-        { value: 'pdf', label: 'Print to PDF (Debug)' }
-    ];
 
     // Prepare Scanner Options
     // User Request: "should only available scanners only"
@@ -472,15 +425,6 @@ const HardwareTab = ({ settings, handleChange, handleSave, onTestPrint, showNoti
                         <span style={{ marginLeft: '5px', fontWeight: 600 }}>
                             {deviceStatus.scanner === 'checking' ? t('settings.hardware.checking') :
                                 deviceStatus.scanner === 'connected' ? t('settings.hardware.ready') : t('settings.hardware.not_found')}
-                        </span>
-                    </div>
-                    <div className={`status-badge ${deviceStatus.printer === 'connected' ? 'connected' : 'disconnected'} `}>
-                        <div className={`status-dot ${deviceStatus.printer === 'checking' ? 'animate-ping' : ''}`}
-                            style={{ background: deviceStatus.printer === 'connected' ? '#10B981' : '#EF4444' }} />
-                        {t('settings.hardware.printer_status')}:
-                        <span style={{ marginLeft: '5px', fontWeight: 600 }}>
-                            {deviceStatus.printer === 'checking' ? t('settings.hardware.checking') :
-                                deviceStatus.printer === 'connected' ? t('settings.hardware.ready') : t('settings.hardware.not_found')}
                         </span>
                     </div>
                 </div>
@@ -588,126 +532,6 @@ const HardwareTab = ({ settings, handleChange, handleSave, onTestPrint, showNoti
                     </div>
                 </div>
             </div>
-
-            {/* Receipt Printer */}
-            <div className="settings-card">
-                <div className="card-header">
-                    <h3 className="card-title"><Printer size={18} /> {t('settings.hardware.printer_config')}</h3>
-                    {deviceStatus.printer === 'connected' && <span className="badge-success">Ready</span>}
-                </div>
-
-                <div className="scanner-grid">
-                    <div>
-                        <label className="form-label">{t('settings.hardware.default_printer')}</label>
-                        <GlassSelect
-                            value={settings.app_hardware?.defaultPrinter || ''}
-                            onChange={(val) => handleChange('app_hardware', 'defaultPrinter', val)}
-                            options={finalPrinterOptions}
-                            icon={Printer}
-                            placeholder="Select Printer"
-                        />
-                    </div>
-                    <div>
-                        <label className="form-label">{t('settings.hardware.print_mode')}</label>
-                        <GlassSelect
-                            value={settings.app_hardware?.printMode || 'system'}
-                            onChange={(val) => handleChange('app_hardware', 'printMode', val)}
-                            options={[
-                                { value: 'system', label: t('settings.hardware.mode_system') },
-                                { value: 'preview', label: t('settings.hardware.mode_preview') },
-                                { value: 'silent', label: t('settings.hardware.mode_silent') }
-                            ]}
-                            icon={Printer}
-                        />
-                    </div>
-                </div>
-
-                <div className="scanner-grid" style={{ marginTop: '1rem' }}>
-                    <div>
-                        <label className="form-label">{t('settings.hardware.paper_width')}</label>
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                            {['58mm', '80mm', 'A4'].map(size => (
-                                <button
-                                    key={size}
-                                    className={`option-btn ${settings.app_hardware?.paperSize === size ? 'active' : ''} `}
-                                    onClick={() => handleChange('app_hardware', 'paperSize', size)}
-                                >
-                                    {size}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-
-                <div style={{ marginTop: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(255,255,255,0.02)', padding: '0.75rem', borderRadius: '8px' }}>
-                    <label className="checkbox-item" style={{ margin: 0 }}>
-                        <input
-                            type="checkbox"
-                            checked={settings.app_hardware?.autoPrint}
-                            onChange={e => handleChange('app_hardware', 'autoPrint', e.target.checked)}
-                        />
-                        <span>{t('settings.hardware.auto_print')}</span>
-                    </label>
-
-                    <button className="nav-button" onClick={() => setShowReviewModal(true)}>
-                        <Printer size={14} /> {t('settings.hardware.print_review')}
-                    </button>
-                </div>
-            </div>
-
-            {/* Print Preview Modal */}
-            {showReviewModal && (
-                <div className="modal-overlay">
-                    <div className="modal-content" style={{ maxWidth: '400px' }}>
-                        <div className="modal-header">
-                            <h3 className="modal-title">{t('settings.hardware.print_preview_title')}</h3>
-                            <button className="modal-close" onClick={() => setShowReviewModal(false)}><X size={20} /></button>
-                        </div>
-                        <div className="modal-body">
-                            <div style={{
-                                background: 'white',
-                                color: 'black',
-                                padding: '20px',
-                                fontFamily: 'monospace',
-                                margin: '0 0 20px 0',
-                                boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-                            }}>
-                                <div style={{ textAlign: 'center', borderBottom: '1px dashed black', paddingBottom: '10px', marginBottom: '10px' }}>
-                                    <div style={{ fontWeight: 'bold', fontSize: '1.2em' }}>GPTK Library</div>
-                                    <div style={{ fontSize: '0.8em' }}>Government Polytechnic</div>
-                                </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9em' }}>
-                                    <span>Date:</span>
-                                    <span>{new Date().toLocaleDateString()}</span>
-                                </div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9em' }}>
-                                    <span>Time:</span>
-                                    <span>{new Date().toLocaleTimeString()}</span>
-                                </div>
-                                <div style={{ borderBottom: '1px solid black', margin: '10px 0' }} />
-                                <div style={{ textAlign: 'center', fontWeight: 'bold', margin: '15px 0' }}>
-                                    ** TEST PAGE **
-                                </div>
-                                <div style={{ fontSize: '0.8em', textAlign: 'center' }}>
-                                    Printer is connected<br />
-                                    and working properly.
-                                </div>
-                                <div style={{ borderBottom: '1px dashed black', margin: '15px 0' }} />
-                                <div style={{ textAlign: 'center', fontSize: '0.8em' }}>
-                                    Supports: Text, Barcode, QR
-                                </div>
-                            </div>
-
-                            <div className="form-actions">
-                                <button className="btn-ghost" onClick={() => setShowReviewModal(false)}>{t('common.close')}</button>
-                                <button className="primary-glass-btn" onClick={handleConfirmPrint}>
-                                    <Printer size={16} style={{ marginRight: '8px' }} /> {t('common.export.print')}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {/* Save Button */}
             <div className="action-footer">
@@ -1854,9 +1678,7 @@ const SettingsPage = () => {
         return window.__autoFillStatus || { running: false, progress: '', total: 0, done: 0 };
     });
 
-    // Print Preview State
-    const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-    const [printData, setPrintData] = useState({ html: '', paperSize: '80mm' });
+
 
     // Notification modal state (replaces browser alerts)
     const [notification, setNotification] = useState({ isOpen: false, title: '', message: '', type: 'info' });
@@ -2384,27 +2206,7 @@ const SettingsPage = () => {
     };
 
 
-    const handleTestPrint = () => {
-        const sampleData = [
-            { Title: "Test Book 1", Author: "Author A", Price: 100 },
-            { Title: "Test Book 2", Author: "Author B", Price: 250 }
-        ];
-        // Use current settings context or local state?
-        // settings state is available here.
-        const content = generatePrintContent("Test Print", sampleData, ['Title', 'Author', 'Price'], settings);
-        setPrintData(content);
-        setIsPreviewOpen(true);
-    };
 
-    const handlePreviewSettingsChange = (newSize) => {
-        const newSettings = { ...settings, app_hardware: { ...settings.app_hardware, paperSize: newSize } };
-        const sampleData = [
-            { Title: "Test Book 1", Author: "Author A", Price: 100 },
-            { Title: "Test Book 2", Author: "Author B", Price: 250 }
-        ];
-        const content = generatePrintContent("Test Print", sampleData, ['Title', 'Author', 'Price'], newSettings);
-        setPrintData(content);
-    };
 
     // ==================== DATA MAINTENANCE HANDLERS ====================
     const fileInputRef = React.useRef(null);
@@ -2559,7 +2361,7 @@ const SettingsPage = () => {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        admin_id: user.id, // Ensure user.id is valid
+                        admin_id: user.id,
                         admin_password: password
                     })
                 });
@@ -2567,21 +2369,23 @@ const SettingsPage = () => {
                 const data = await res.json();
 
                 if (res.ok) {
-                    showNotification('System Reset', 'System has been reset successfully. Redirecting...', 'success');
-                    // Clear storage and force logout
+                    // Clear storage immediately
+                    localStorage.clear();
+                    sessionStorage.clear();
+                    // Show brief message then force-close the app
+                    showNotification('System Reset Complete', 'All data has been wiped. The application will close now. Please reopen to set up a new admin.', 'success');
                     setTimeout(() => {
-                        localStorage.clear();
-                        sessionStorage.clear();
-                        window.location.hash = '/login';
-                        window.location.reload();
-                    }, 1000);
+                        if (window.electron && window.electron.windowControl) {
+                            window.electron.windowControl.close();
+                        } else {
+                            window.close();
+                        }
+                    }, 2000);
                 } else {
-                    // Throw error so PasswordPromptModal can catch it and show feedback
                     throw new Error(data.error || 'Reset failed');
                 }
             } catch (e) {
                 console.error(e);
-                // Re-throw if it's the error we just threw, otherwise generic
                 throw e;
             }
         });
@@ -2700,7 +2504,7 @@ const SettingsPage = () => {
                         settings={settings}
                         handleChange={handleChange}
                         handleSave={handleSave}
-                        onTestPrint={handleTestPrint}
+
                         showNotification={showNotification}
                     />
                 )}
@@ -2785,15 +2589,7 @@ const SettingsPage = () => {
                 isDangerous={true}
             />
 
-            <PrintPreviewModal
-                isOpen={isPreviewOpen}
-                onClose={() => setIsPreviewOpen(false)}
-                title="Test Print Preview"
-                contentHtml={printData.html}
-                paperSize={printData.paperSize}
-                onSettingsChange={handlePreviewSettingsChange}
-                settings={settings}
-            />
+
             <ConfirmationModal
                 isOpen={isClearCacheModalOpen}
                 onClose={() => setIsClearCacheModalOpen(false)}

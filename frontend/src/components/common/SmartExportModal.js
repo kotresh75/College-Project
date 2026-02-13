@@ -1,94 +1,30 @@
 import React, { useState, useEffect } from 'react';
-import { X, Download, FileText, FileSpreadsheet, Layers, CheckCircle2, Filter, Printer } from 'lucide-react';
-import PrintPreviewModal from './PrintPreviewModal';
-import { generatePrintContent } from '../../utils/SmartPrinterHandler';
+import { X, Download, FileText, FileSpreadsheet, Layers, CheckCircle2, Filter } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 
-const SmartExportModal = ({ onClose, onExport, totalCount, selectedCount, filteredCount, entityName = "Items", data = [], columns = [], onFetchAll, allowedFormats = ['xlsx', 'csv', 'pdf', 'print'] }) => {
+const SmartExportModal = ({ onClose, onExport, totalCount, selectedCount, filteredCount, entityName = "Items", data = [], columns = [], onFetchAll, onFetchAllTables, getExportData, getVisualData, allowedFormats = ['xlsx', 'csv', 'pdf'] }) => {
     const { t } = useLanguage();
     const [scope, setScope] = useState('all'); // all, selected, filtered
     const [format, setFormat] = useState(allowedFormats[0] || 'xlsx');
     const [loading, setLoading] = useState(false);
 
-    // Print Preview State
-    const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-    const [printData, setPrintData] = useState({ html: '', paperSize: 'A4' });
+
 
     // Fetch settings on mount (simulated context or local storage)
     const [settings, setSettings] = useState({});
 
     useEffect(() => {
         const fetchSettings = async () => {
-            try {
-                const res = await fetch('http://localhost:17221/api/settings/app');
-                if (res.ok) {
-                    const data = await res.json();
-                    setSettings(data);
-                }
-            } catch (e) {
-                console.warn("Could not fetch settings for printing, using defaults.");
-            }
+            // ... keeping settings fetch for now as it might be used for other things or future, though mainly for print. 
+            // actually it seems only used for print. Let's remove it if it's only for print.
+            // Checking usage: `const printSettings = { ...settings, visualImage };` -> YES only for print.
         };
-        fetchSettings();
+        // removing effect
     }, []);
 
     const handleExport = () => {
-        if (format === 'print') {
-            // Check if parent handles print action (returns true)
-            const handled = onExport && onExport(scope, format);
-            if (handled === true) {
-                onClose();
-                return;
-            }
-            handlePrintPreview();
-        } else {
-            if (onExport) onExport(scope, format);
-            onClose();
-        }
-    };
-
-    const handlePrintPreview = async () => {
-        let dataToPrint = data;
-
-        // 1. Determine if we need to fetch all data
-        // If scope is 'all' or 'filtered' and we have onFetchAll and total filtered/all > current data length
-        // Note: 'data' passed from parent usually matches the grid view (current page)
-        // If user wants to print "Filtered View" (which usually implies all matching filter, not just page 1), we should fetch.
-
-        const needsFetch = onFetchAll && (filteredCount > data.length || (scope === 'all' && totalCount > data.length));
-
-        if (needsFetch) {
-            setLoading(true);
-            try {
-                // Determine what to fetch based on scope
-                // Usually onFetchAll handles using current filters + limit=all
-                // We might need to pass scope? but pages usually handle filters internally.
-                const fullData = await onFetchAll();
-                if (fullData && Array.isArray(fullData)) {
-                    dataToPrint = fullData;
-                }
-            } catch (error) {
-                console.error("Failed to fetch all data for print", error);
-                // Fallback to existing data or alert? 
-                // We'll just continue with current data to avoid breakage
-            } finally {
-                setLoading(false);
-            }
-        }
-
-        const title = `${entityName} Report ${scope !== 'all' ? `(${scope})` : ''}`;
-        const content = generatePrintContent(title, dataToPrint, columns, settings);
-        setPrintData(content);
-        setIsPreviewOpen(true);
-    };
-
-    const handlePreviewSettingsChange = (newSize) => {
-        // Regenerate content with new size
-        // We need to keep 'printData' context if we fetched full data. 
-        // Ideally we should store the 'dataToPrint' in state if we want to support resizing dynamic data.
-        // For simplicity, we might rebuild it or we need to persist the dataToPrint.
-        // Let's rely on printData.html if generatePrintContent is pure, but it needs data.
-        // Improvement: Store 'currentPreviewData' in state.
+        if (onExport) onExport(scope, format);
+        onClose();
     };
 
     const ScopeOption = ({ id, label, count, icon: Icon, disabled }) => (
@@ -161,6 +97,8 @@ const SmartExportModal = ({ onClose, onExport, totalCount, selectedCount, filter
                             </div>
                         </div>
 
+
+
                         {/* Format Selection */}
                         <div>
                             <label style={{ fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--text-secondary)', marginBottom: '12px', display: 'block' }}>{t('common.export.format')}</label>
@@ -211,20 +149,7 @@ const SmartExportModal = ({ onClose, onExport, totalCount, selectedCount, filter
                                     </div>
                                 )}
 
-                                {/* NEW Print Option */}
-                                {allowedFormats.includes('print') && (
-                                    <div
-                                        onClick={() => setFormat('print')}
-                                        className="format-card"
-                                        style={{
-                                            borderColor: format === 'print' ? '#8b5cf6' : 'var(--border-color)',
-                                            background: format === 'print' ? 'rgba(139, 92, 246, 0.1)' : 'transparent'
-                                        }}
-                                    >
-                                        <Printer size={24} style={{ color: format === 'print' ? '#8b5cf6' : 'var(--text-secondary)', marginBottom: '6px' }} />
-                                        <span style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: '0.85rem' }}>{t('common.export.print')}</span>
-                                    </div>
-                                )}
+
                             </div>
                         </div>
 
@@ -240,12 +165,11 @@ const SmartExportModal = ({ onClose, onExport, totalCount, selectedCount, filter
                                 background:
                                     format === 'xlsx' ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' :
                                         format === 'pdf' ? 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)' :
-                                            format === 'print' ? 'linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%)' :
-                                                'var(--primary-btn-bg)'
+                                            'var(--primary-btn-bg)'
                             }}
                         >
-                            {format === 'print' ? <Printer size={20} /> : <Download size={20} />}
-                            {format === 'print' ? t('common.export.preview_print') : `${t('common.export.export_btn')} ${format === 'xlsx' ? t('common.export.excel') : format === 'pdf' ? t('common.export.pdf') : t('common.export.csv')}`}
+                            <Download size={20} />
+                            {`${t('common.export.export_btn')} ${format === 'xlsx' ? t('common.export.excel') : format === 'pdf' ? t('common.export.pdf') : t('common.export.csv')}`}
                         </button>
 
                     </div>
@@ -293,15 +217,7 @@ const SmartExportModal = ({ onClose, onExport, totalCount, selectedCount, filter
                 `}</style>
             </div>
 
-            {/* Print Preview Modal */}
-            <PrintPreviewModal
-                isOpen={isPreviewOpen}
-                onClose={() => setIsPreviewOpen(false)}
-                title={`Print ${entityName}`}
-                contentHtml={printData.html}
-                paperSize={printData.paperSize}
-                onSettingsChange={handlePreviewSettingsChange}
-            />
+
         </>
     );
 };

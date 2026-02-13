@@ -2,6 +2,7 @@ import React from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
+import SetupPage from './pages/SetupPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import DashboardHome from './pages/DashboardHome';
 import AboutPage from './pages/AboutPage';
@@ -20,7 +21,7 @@ import ReportsPage from './pages/ReportsPage';
 import AuditPage from './pages/AuditPage';
 import TransactionHistoryPage from './pages/TransactionHistoryPage';
 import UserProfile from './pages/UserProfile';
-import PrintableReport from './pages/PrintableReport';
+
 import { PreferencesProvider } from './context/PreferencesContext';
 import { LanguageProvider } from './context/LanguageContext';
 import { SessionProvider, useSession } from './context/SessionContext';
@@ -50,6 +51,22 @@ const DbStatusCheck = () => {
   );
 };
 
+// Setup check wrapper — redirects to /setup if no admin exists
+const SetupGuard = ({ children }) => {
+  const [needsSetup, setNeedsSetup] = React.useState(null); // null = checking
+
+  React.useEffect(() => {
+    fetch('http://localhost:17221/api/auth/setup-status')
+      .then(res => res.json())
+      .then(data => setNeedsSetup(data.needsSetup))
+      .catch(() => setNeedsSetup(false)); // On error, allow normal flow
+  }, []);
+
+  if (needsSetup === null) return null; // Still checking
+  if (needsSetup) return <Navigate to="/setup" replace />;
+  return children;
+};
+
 function App() {
   return (
     <PreferencesProvider>
@@ -64,11 +81,12 @@ function App() {
                 <GlobalNotifications />
                 <LockScreen />
                 <Routes>
-                  <Route path="/" element={<LandingPage />} />
-                  <Route path="/login" element={<LoginPage />} />
+                  <Route path="/setup" element={<SetupPage />} />
+                  <Route path="/" element={<SetupGuard><LandingPage /></SetupGuard>} />
+                  <Route path="/login" element={<SetupGuard><LoginPage /></SetupGuard>} />
                   <Route path="/about" element={<AboutPage />} />
                   <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-                  <Route path="/print/report" element={<PrintableReport />} />
+
 
                   {/* Protected Dashboard Routes */}
                   <Route path="/dashboard" element={<MainLayout />}>

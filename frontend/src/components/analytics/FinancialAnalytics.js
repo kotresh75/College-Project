@@ -46,13 +46,7 @@ const FinancialAnalytics = ({ stats }) => {
                     color="red"
                     trend={totalPotential > 0 ? `${((pending / totalPotential) * 100).toFixed(0)}% ${t('reports.analytics.fin.unrecovered')}` : null}
                 />
-                <StatsCard
-                    title={t('reports.analytics.fin.waived')}
-                    value={`₹${stats?.summary?.waived?.toFixed(2) || '0.00'}`}
-                    icon={Activity}
-                    color="blue"
-                    trend={t('reports.analytics.fin.authorized')}
-                />
+
             </div>
 
             {/* Main Financial Grid - Forced 2 Columns */}

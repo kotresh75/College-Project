@@ -8,8 +8,11 @@ const { getISTISOWithOffset } = require('../utils/dateUtils');
 
 // GET /api/admins
 exports.getAdmins = (req, res) => {
-    // Exclude password_hash
-    const query = `SELECT id, name, email, phone, status, last_login, created_at FROM admins ORDER BY created_at DESC`;
+    // Exclude password_hash; mark the earliest-created admin as 'founder'
+    const query = `
+        SELECT id, name, email, phone, status, last_login, created_at,
+            CASE WHEN created_at = (SELECT MIN(created_at) FROM admins) THEN 1 ELSE 0 END as is_founder
+        FROM admins ORDER BY created_at DESC`;
     db.all(query, [], (err, rows) => {
         if (err) return res.status(500).json({ error: err.message });
         res.json(rows);
@@ -67,48 +70,59 @@ exports.toggleStatus = (req, res) => {
 
     if (!['Active', 'Disabled'].includes(status)) return res.status(400).json({ error: "Invalid status" });
 
-    // Protect Root Admin (using email check or ID check if known)
-    // We'll check if the target admin is the root admin by email before update
     db.get("SELECT email FROM admins WHERE id = ?", [id], (err, row) => {
         if (err) return res.status(500).json({ error: err.message });
         if (!row) return res.status(404).json({ error: "Admin not found" });
 
-        if (row.email === 'veerkotresh@gmail.com') {
-            return res.status(403).json({ error: "Cannot disable Root Admin" });
+        // Prevent disabling the last active admin
+        if (status === 'Disabled') {
+            db.get("SELECT COUNT(*) as count FROM admins WHERE status = 'Active'", (err, countRow) => {
+                if (err) return res.status(500).json({ error: err.message });
+                if (countRow.count <= 1) {
+                    return res.status(403).json({ error: "Cannot disable the last active admin. Create another admin first." });
+                }
+                doUpdate();
+            });
+        } else {
+            doUpdate();
         }
 
-        const query = `UPDATE admins SET status = ?, updated_at = datetime('now', '+05:30') WHERE id = ?`;
-        db.run(query, [status, id], function (err) {
-            if (err) return res.status(500).json({ error: err.message });
+        function doUpdate() {
+            const query = `UPDATE admins SET status = ?, updated_at = datetime('now', '+05:30') WHERE id = ?`;
+            db.run(query, [status, id], function (err) {
+                if (err) return res.status(500).json({ error: err.message });
 
-            auditService.log(req.user, 'STATUS_CHANGE', 'Admin Management', `Changed status of ${row.email} to ${status}`, { target_id: id, new_status: status });
-            socketService.emit('admin_update', { type: 'UPDATE', id });
-            res.json({ message: `Admin ${status}` });
-        });
+                auditService.log(req.user, 'STATUS_CHANGE', 'Admin Management', `Changed status of ${row.email} to ${status}`, { target_id: id, new_status: status });
+                socketService.emit('admin_update', { type: 'UPDATE', id });
+                res.json({ message: `Admin ${status}` });
+            });
+        }
     });
 };
 
 // DELETE /api/admins/:id
 exports.deleteAdmin = (req, res) => {
     const { id } = req.params;
-    const actorId = req.user ? req.user.id : 'SYSTEM';
-    const actorRole = req.user ? req.user.role : 'System';
 
     db.get("SELECT email FROM admins WHERE id = ?", [id], (err, row) => {
         if (err) return res.status(500).json({ error: err.message });
         if (!row) return res.status(404).json({ error: "Admin not found" });
 
-        if (row.email === 'veerkotresh@gmail.com') {
-            return res.status(403).json({ error: "Cannot delete Root Admin" });
-        }
-
-        const query = `DELETE FROM admins WHERE id = ?`;
-        db.run(query, [id], function (err) {
+        // Prevent deleting the last admin
+        db.get("SELECT COUNT(*) as count FROM admins", (err, countRow) => {
             if (err) return res.status(500).json({ error: err.message });
+            if (countRow.count <= 1) {
+                return res.status(403).json({ error: "Cannot delete the last admin. Create another admin first." });
+            }
 
-            auditService.log(req.user, 'DELETE', 'Admin Management', `Deleted admin: ${row.email}`, { target_id: id });
-            socketService.emit('admin_update', { type: 'DELETE', id });
-            res.json({ message: "Admin deleted successfully" });
+            const query = `DELETE FROM admins WHERE id = ?`;
+            db.run(query, [id], function (err) {
+                if (err) return res.status(500).json({ error: err.message });
+
+                auditService.log(req.user, 'DELETE', 'Admin Management', `Deleted admin: ${row.email}`, { target_id: id });
+                socketService.emit('admin_update', { type: 'DELETE', id });
+                res.json({ message: "Admin deleted successfully" });
+            });
         });
     });
 };

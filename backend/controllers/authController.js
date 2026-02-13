@@ -7,6 +7,76 @@ const { getISTISOWithOffset } = require('../utils/dateUtils');
 // SECRET should eventually check system_settings, but for now we fallback
 const JWT_SECRET = 'gptk_lms_secret_temporary_key';
 
+// GET /api/auth/setup-status — Check if any admin exists
+exports.setupStatus = (req, res) => {
+    db.get("SELECT COUNT(*) as count FROM admins", (err, row) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ needsSetup: row.count === 0 });
+    });
+};
+
+// POST /api/auth/setup — Create the first admin (only works when 0 admins exist)
+exports.setupAdmin = (req, res) => {
+    const { name, email, password } = req.body;
+
+    if (!name || !email || !password) {
+        return res.status(400).json({ error: 'Name, email, and password are required' });
+    }
+    if (password.length < 6) {
+        return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    }
+
+    // Only allow if 0 admins exist
+    db.get("SELECT COUNT(*) as count FROM admins", (err, row) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (row.count > 0) {
+            return res.status(403).json({ error: 'Setup already completed. An admin already exists.' });
+        }
+
+        const saltRounds = 10;
+        bcrypt.hash(password, saltRounds, (err, hash) => {
+            if (err) return res.status(500).json({ error: 'Encryption error' });
+
+            const { v4: uuidv4 } = require('uuid');
+            const id = uuidv4();
+            const createdAt = getISTISOWithOffset();
+
+            db.run(
+                "INSERT INTO admins (id, name, email, password_hash, status, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+                [id, name, email, hash, 'Active', createdAt],
+                function (err) {
+                    if (err) {
+                        if (err.message.includes('UNIQUE')) return res.status(409).json({ error: 'Email already exists' });
+                        return res.status(500).json({ error: err.message });
+                    }
+
+                    // Generate JWT for immediate login
+                    const token = jwt.sign(
+                        { id, email, role: 'Admin' },
+                        JWT_SECRET,
+                        { expiresIn: '12h' }
+                    );
+
+                    // Audit
+                    auditService.log(
+                        { id, role: 'Admin', email },
+                        'SETUP',
+                        'Auth',
+                        `Initial admin created during setup: ${name} (${email})`,
+                        { ip: req.ip }
+                    );
+
+                    res.json({
+                        message: 'Admin created successfully',
+                        token,
+                        user: { id, name, email, role: 'Admin' }
+                    });
+                }
+            );
+        });
+    });
+};
+
 exports.login = (req, res) => {
     const { email, password } = req.body;
 
@@ -57,7 +127,7 @@ exports.login = (req, res) => {
 
             // Audit Success
             auditService.log(
-                { id: user.id, role: role },
+                { id: user.id, role: role, email: user.email },
                 'LOGIN',
                 'Auth',
                 `User logged in: ${user.email}`,
