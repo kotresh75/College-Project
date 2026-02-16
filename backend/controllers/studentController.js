@@ -528,3 +528,49 @@ exports.getPhotoStats = (req, res) => {
         res.json({ count: row.count || 0 });
     });
 };
+
+// GET /api/students/id-cards — Bulk fetch for ID card PDF generation
+exports.getStudentsForIdCards = (req, res) => {
+    const { department, semester } = req.query;
+
+    let query = `
+        SELECT s.id, s.full_name, s.father_name, s.register_number, s.phone,
+               s.semester, s.dept_id, s.profile_image,
+               d.name as department_name, d.code as department_code
+        FROM students s
+        LEFT JOIN departments d ON s.dept_id = d.id
+        WHERE s.status = 'Active'
+    `;
+    let params = [];
+
+    if (department) {
+        query += " AND d.name = ?";
+        params.push(department);
+    }
+    if (semester) {
+        query += " AND s.semester = ?";
+        params.push(semester);
+    }
+
+    query += " ORDER BY s.register_number ASC";
+
+    // First get count
+    const countQuery = `
+        SELECT COUNT(*) as count
+        FROM students s
+        LEFT JOIN departments d ON s.dept_id = d.id
+        WHERE s.status = 'Active'
+        ${department ? " AND d.name = ?" : ""}
+        ${semester ? " AND s.semester = ?" : ""}
+    `;
+
+    db.get(countQuery, params, (err, row) => {
+        if (err) return res.status(500).json({ error: err.message });
+        const total = row ? row.count : 0;
+
+        db.all(query, params, (err, rows) => {
+            if (err) return res.status(500).json({ error: err.message });
+            res.json({ data: rows, total });
+        });
+    });
+};

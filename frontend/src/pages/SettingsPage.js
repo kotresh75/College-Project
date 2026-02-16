@@ -13,8 +13,10 @@ import ConfirmationModal from '../components/common/ConfirmationModal';
 import StatusModal from '../components/common/StatusModal';
 import { usePreferences } from '../context/PreferencesContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useTutorial } from '../context/TutorialContext';
 import { useSession } from '../context/SessionContext';
 import GlassSelect from '../components/common/GlassSelect';
+import BulkIDCardDownload from '../components/students/BulkIDCardDownload';
 
 // Help functions
 const getPasswordStrength = (password) => {
@@ -1474,6 +1476,7 @@ const DataEnrichmentTab = ({ bgAutoFillStatus, handleBackgroundAutoFill }) => {
 
             <BulkPhotoUpload />
             <SignatureUploadSection />
+            <BulkIDCardDownload />
         </div>
     );
 };
@@ -1666,7 +1669,14 @@ const SystemSecurityTab = ({ settings, handleChange, handleSave }) => (
 
 const SettingsPage = () => {
     const navigate = useNavigate();
-    const { refreshSessionSettings } = useSession();
+    const { enableKioskMode, disableKioskMode, refreshSessionSettings } = useSession();
+    const { setPageContext } = useTutorial();
+
+    useEffect(() => {
+        setPageContext('settings');
+    }, []);
+
+    // Load Settings on MountiveCategory, setActiveCategory] = useState('appearance');
     const [activeCategory, setActiveCategory] = useState('appearance');
     const [settings, setSettings] = useState(null);
     const [loading, setLoading] = useState(true);

@@ -1,0 +1,1289 @@
+<!DOCTYPE html>
+<html lang="kn">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPTK ಗ್ರಂಥಾಲಯ ನಿರ್ವಹಣಾ ವ್ಯವಸ್ಥೆ - ಬಳಕೆದಾರ ಕೈಪಿಡಿ</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1e40af;
+            --secondary: #64748b;
+            --bg-color: #f8fafc;
+            --text-color: #1e293b;
+            --heading-color: #0f172a;
+            --border-color: #e2e8f0;
+            --card-bg: #ffffff;
+            --check-color: #16a34a;
+            --tip-bg: #eff6ff;
+            --tip-border: #3b82f6;
+            --warn-bg: #fefce8;
+            --warn-border: #eab308;
+            --danger-bg: #fef2f2;
+            --danger-border: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background: var(--bg-color);
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Navigation */
+        .nav-bar {
+            position: sticky;
+            top: 0;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 15px 0;
+            border-bottom: 1px solid var(--border-color);
+            z-index: 1000;
+            margin-bottom: 40px;
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        .nav-link {
+            text-decoration: none;
+            color: var(--secondary);
+            font-weight: 500;
+            font-size: 0.9rem;
+            transition: color 0.2s;
+            padding: 5px 10px;
+            border-radius: 6px;
+        }
+
+        .nav-link:hover {
+            color: var(--primary);
+            background: var(--tip-bg);
+        }
+
+        /* Typography */
+        h1 {
+            text-align: center;
+            color: var(--heading-color);
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: var(--secondary);
+            margin-bottom: 50px;
+            font-size: 1.1rem;
+        }
+
+        h2 {
+            color: var(--primary);
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 10px;
+            margin-top: 0;
+            margin-bottom: 20px;
+            font-size: 1.8rem;
+        }
+
+        h3 {
+            color: var(--heading-color);
+            margin: 30px 0 15px;
+            font-size: 1.4rem;
+        }
+
+        h4 {
+            color: var(--primary-dark);
+            margin: 25px 0 10px;
+            font-size: 1.1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        h5 {
+            color: var(--secondary);
+            margin: 15px 0 5px;
+            font-size: 1rem;
+        }
+
+        p {
+            margin-bottom: 15px;
+        }
+
+        /* Layout */
+        section {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 40px;
+            margin-bottom: 40px;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--border-color);
+            scroll-margin-top: 80px;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            align-items: start;
+            margin: 20px 0;
+        }
+
+        /* Components */
+        img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            display: block;
+            margin: 20px auto;
+        }
+
+        .caption {
+            text-align: center;
+            color: var(--secondary);
+            font-size: 0.85rem;
+            font-style: italic;
+            margin-top: -10px;
+            margin-bottom: 30px;
+        }
+
+        .callout {
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid;
+        }
+
+        .callout.tip {
+            background: var(--tip-bg);
+            border-color: var(--tip-border);
+            color: #1e3a8a;
+        }
+
+        .callout.warning {
+            background: var(--warn-bg);
+            border-color: var(--warn-border);
+            color: #713f12;
+        }
+
+        .callout.danger {
+            background: var(--danger-bg);
+            border-color: var(--danger-border);
+            color: #991b1b;
+        }
+
+        .callout strong {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        /* Lists */
+        ul,
+        ol {
+            padding-left: 25px;
+            margin-bottom: 20px;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        .check-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .check-list li {
+            padding-left: 25px;
+            position: relative;
+        }
+
+        .check-list li::before {
+            content: "✓";
+            color: var(--check-color);
+            position: absolute;
+            left: 0;
+            font-weight: bold;
+        }
+
+        /* Inline Elements */
+        strong {
+            color: var(--primary-dark);
+            font-weight: 600;
+        }
+
+        code,
+        kbd {
+            background: #f1f5f9;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.9em;
+            color: #be185d;
+            border: 1px solid #e2e8f0;
+        }
+
+        kbd {
+            border-bottom-width: 2px;
+            color: #0f172a;
+        }
+
+        /* Table of Contents */
+        .toc {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 40px;
+            border: 1px solid var(--border-color);
+        }
+
+        .toc-list {
+            column-count: 3;
+            column-gap: 40px;
+            list-style: none;
+            padding: 0;
+        }
+
+        .toc-list li {
+            margin-bottom: 10px;
+            break-inside: avoid;
+        }
+
+        .toc-list a {
+            text-decoration: none;
+            color: var(--text-color);
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .toc-list a:hover {
+            color: var(--primary);
+        }
+
+        .toc-num {
+            color: var(--secondary);
+            font-size: 0.8em;
+            width: 20px;
+            display: inline-block;
+        }
+
+        /* Professional Polish */
+        .step-list {
+            list-style: none;
+            padding: 0;
+            counter-reset: step-counter;
+            margin: 30px 0;
+        }
+
+        .step-list li {
+            position: relative;
+            padding-left: 50px;
+            margin-bottom: 25px;
+        }
+
+        .step-list li::before {
+            counter-increment: step-counter;
+            content: counter(step-counter);
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 32px;
+            height: 32px;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 32px;
+            font-weight: bold;
+            font-size: 0.9em;
+            box-shadow: 0 2px 4px rgba(37, 99, 235, 0.3);
+        }
+
+        .step-list li::after {
+            content: "";
+            position: absolute;
+            left: 15px;
+            top: 35px;
+            bottom: -20px;
+            width: 2px;
+            background: #e2e8f0;
+            z-index: 0;
+        }
+
+        .step-list li:last-child::after {
+            display: none;
+        }
+
+        .step-title {
+            display: block;
+            font-weight: 600;
+            color: var(--heading-color);
+            margin-bottom: 5px;
+            font-size: 1.05em;
+        }
+
+        .step-desc {
+            color: var(--secondary);
+            font-size: 0.95em;
+        }
+
+        .code-block {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.9rem;
+            margin: 10px 0;
+            overflow-x: auto;
+            border: 1px solid #334155;
+        }
+
+        .sub-steps {
+            list-style: none;
+            padding-left: 0;
+            margin-top: 10px;
+            border-left: 2px solid var(--border-color);
+            margin-left: 5px;
+        }
+
+        .sub-steps li {
+            padding-left: 15px;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+        }
+
+        .sub-steps li::before {
+            content: none;
+        }
+
+        @media (max-width: 768px) {
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+
+            .toc-list {
+                column-count: 1;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            body {
+                padding: 10px;
+            }
+
+            .step-list li {
+                padding-left: 40px;
+            }
+        }
+
+        @media print {
+            .nav-bar {
+                display: none;
+            }
+
+            body {
+                background: white;
+                max-width: 100%;
+                padding: 0;
+            }
+
+            section {
+                box-shadow: none;
+                border: none;
+                padding: 0;
+                break-inside: avoid;
+            }
+
+            a {
+                text-decoration: none;
+                color: black;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <h1>ಬಳಕೆದಾರ ಕೈಪಿಡಿ</h1>
+        <div class="subtitle">GPTK ಗ್ರಂಥಾಲಯ ನಿರ್ವಹಣಾ ವ್ಯವಸ್ಥೆ v1.0</div>
+    </header>
+
+    <nav class="nav-bar">
+        <a href="#intro" class="nav-link">ಪರಿಚಯ</a>
+        <a href="#auth" class="nav-link">ದೃಢೀಕರಣ</a>
+        <a href="#dashboard" class="nav-link">ಡ್ಯಾಶ್‌ಬೋರ್ಡ್</a>
+        <a href="#books" class="nav-link">ಪುಸ್ತಕಗಳು</a>
+        <a href="#students" class="nav-link">ವಿದ್ಯಾರ್ಥಿಗಳು</a>
+        <a href="#departments" class="nav-link">ವಿಭಾಗಗಳು</a>
+        <a href="#circulation" class="nav-link">ಪುಸ್ತಕ ವಿತರಣೆ</a>
+        <a href="#transactions" class="nav-link">ವಹಿವಾಟುಗಳು</a>
+        <a href="#reports" class="nav-link">ವರದಿಗಳು</a>
+        <a href="#staff" class="nav-link">ಸಿಬ್ಬಂದಿ</a>
+        <a href="#admin" class="nav-link">ನಿರ್ವಾಹಕರು</a>
+        <a href="#settings" class="nav-link">ಸೆಟ್ಟಿಂಗ್‌ಗಳು</a>
+    </nav>
+
+    <div class="toc">
+        <h4>ವಿಷಯ ಸೂಚಿ</h4>
+        <ul class="toc-list">
+            <li><span class="toc-num">01</span> <a href="#intro">ಪರಿಚಯ</a></li>
+            <li><span class="toc-num">02</span> <a href="#auth">ದೃಢೀಕರಣ</a></li>
+            <li><span class="toc-num">03</span> <a href="#setup">ಪ್ರಾರಂಭಿಕ ಸೆಟಪ್</a></li>
+            <li><span class="toc-num">04</span> <a href="#dashboard">ಡ್ಯಾಶ್‌ಬೋರ್ಡ್</a></li>
+            <li><span class="toc-num">05</span> <a href="#header">ಹೆಡರ್ ಮತ್ತು ಸೆಟ್ಟಿಂಗ್‌ಗಳು</a></li>
+            <li><span class="toc-num">06</span> <a href="#books">ಪುಸ್ತಕಗಳು</a></li>
+            <li><span class="toc-num">07</span> <a href="#students">ವಿದ್ಯಾರ್ಥಿಗಳು</a></li>
+            <li><span class="toc-num">08</span> <a href="#departments">ವಿಭಾಗಗಳು</a></li>
+            <li><span class="toc-num">09</span> <a href="#circulation">ಪುಸ್ತಕ ವಿತರಣೆ</a></li>
+            <li><span class="toc-num">10</span> <a href="#transactions">ವಹಿವಾಟುಗಳು</a></li>
+            <li><span class="toc-num">11</span> <a href="#reports">ವರದಿಗಳು</a></li>
+            <li><span class="toc-num">12</span> <a href="#staff">ಸಿಬ್ಬಂದಿ</a></li>
+            <li><span class="toc-num">13</span> <a href="#admin">ನಿರ್ವಾಹಕರು</a></li>
+            <li><span class="toc-num">14</span> <a href="#audit">ಆಡಿಟ್ ಲಾಗ್‌ಗಳು</a></li>
+            <li><span class="toc-num">15</span> <a href="#policies">ನಿಯಮಗಳು</a></li>
+            <li><span class="toc-num">16</span> <a href="#settings">ಸೆಟ್ಟಿಂಗ್‌ಗಳು</a></li>
+            <li><span class="toc-num">17</span> <a href="#health">ಸಿಸ್ಟಮ್ ಆರೋಗ್ಯ</a></li>
+            <li><span class="toc-num">18</span> <a href="#public">ಸಾರ್ವಜನಿಕ ಪುಟಗಳು</a></li>
+        </ul>
+    </div>
+
+    <!-- 1. Introduction -->
+    <section id="intro">
+        <h2>1. ಪರಿಚಯ</h2>
+        <h3>GPTK ಗ್ರಂಥಾಲಯ ನಿರ್ವಹಣಾ ವ್ಯವಸ್ಥೆಗೆ ಸುಸ್ವಾಗತ</h3>
+        <p><strong>GPTK ಗ್ರಂಥಾಲಯ ನಿರ್ವಹಣಾ ವ್ಯವಸ್ಥೆ (LMS)</strong> ಒಂದು ಅತ್ಯಾಧುನಿಕ ಡೆಸ್ಕ್‌ಟಾಪ್ ಅಪ್ಲಿಕೇಶನ್ ಆಗಿದ್ದು,
+            ಸರ್ಕಾರಿ ಪಾಲಿಟೆಕ್ನಿಕ್ ಕಂಪ್ಲಿ ಗ್ರಂಥಾಲಯದ ಸಂಪೂರ್ಣ ಕೆಲಸದ ಹರಿವನ್ನು ಡಿಜಿಟಲೀಕರಣ ಮತ್ತು ಸ್ವಯಂಚಾಲಿತಗೊಳಿಸಲು
+            ವಿನ್ಯಾಸಗೊಳಿಸಲಾಗಿದೆ. ವೇಗ, ವಿಶ್ವಾಸಾರ್ಹತೆ ಮತ್ತು ಬಳಕೆಯ ಸುಲಭತೆಗಾಗಿ ಇದನ್ನು ನಿರ್ಮಿಸಲಾಗಿದೆ, ಇದು ಸಾಂಪ್ರದಾಯಿಕ
+            ಗ್ರಂಥಾಲಯ ಕಾರ್ಯಾಚರಣೆಗಳನ್ನು ಡಿಜಿಟಲ್ ಅನುಭವವಾಗಿ ಪರಿವರ್ತಿಸುತ್ತದೆ.</p>
+
+        <div class="callout tip">
+            <strong>ಆವೃತ್ತಿ 1.0:</strong> ಈಗ ಡಾರ್ಕ್ ಮೋಡ್ ಬೆಂಬಲ, ವರ್ಧಿತ ವರದಿ ವಿಶ್ಲೇಷಣೆ ಮತ್ತು ಸ್ವಯಂಚಾಲಿತ
+            ವಿದ್ಯಾರ್ಥಿ ಡೇಟಾ ಆಮದುಗಳೊಂದಿಗೆ ಸಂಪೂರ್ಣವಾಗಿ ಮರುವಿನ್ಯಾಸಗೊಳಿಸಲಾದ ಇಂಟರ್ಫೇಸ್ ಅನ್ನು ಒಳಗೊಂಡಿದೆ.
+        </div>
+
+        <h4>ಪ್ರಮುಖ ಸಾಮರ್ಥ್ಯಗಳು</h4>
+        <p>ಗ್ರಂಥಾಲಯದ ಸಿಬ್ಬಂದಿ, ಬೋಧಕವರ್ಗ ಮತ್ತು ವಿದ್ಯಾರ್ಥಿಗಳಿಗೆ ಸೇವೆ ಸಲ್ಲಿಸಲು ವಿನ್ಯಾಸಗೊಳಿಸಲಾದ ಈ ವ್ಯವಸ್ಥೆಯು ಗ್ರಂಥಾಲಯ
+            ನಿರ್ವಹಣೆಯ ಐದು ಪ್ರಮುಖ ಸ್ತಂಭಗಳನ್ನು ಸಂಯೋಜಿಸುತ್ತದೆ:</p>
+        <ul class="check-list">
+            <li><strong>ಕ್ಯಾಟಲಾಗ್ ನಿರ್ವಹಣೆ (Catalog Management):</strong> ಸಾವಿರಾರು ಪುಸ್ತಕಗಳಿಗಾಗಿ ಪ್ರಬಲ ಹುಡುಕಾಟ ಮತ್ತು
+                ದಾಸ್ತಾನು ವ್ಯವಸ್ಥೆ.</li>
+            <li><strong>ಸ್ಮಾರ್ಟ್ ವಹಿವಾಟು (Smart Circulation):</strong> ಬಾರ್‌ಕೋಡ್ ஸ್ಕ್ಯಾನಿಂಗ್ ಅಥವಾ ಹಸ್ತಚಾಲಿತ ನಮೂದನ್ನು
+                ಬಳಸಿಕೊಂಡು ಮಿಂಚಿನ ವೇಗದ ವಿತರಣೆ ಮತ್ತು ಹಿಂತಿರುಗಿಸುವಿಕೆ.</li>
+            <li><strong>ಸದಸ್ಯರ ಆಡಳಿತ (Member Administration):</strong> ಡಿಜಿಟಲ್ ಐಡಿ ಕಾರ್ಡ್ ರಚನೆಯೊಂದಿಗೆ ಸಮಗ್ರ ವಿದ್ಯಾರ್ಥಿ
+                ಮತ್ತು ಸಿಬ್ಬಂದಿ ಡೇಟಾಬೇಸ್‌ಗಳು.</li>
+            <li><strong>ಹಣಕಾಸು ಟ್ರ್ಯಾಕಿಂಗ್ (Financial Tracking):</strong> ಸ್ವಯಂಚಾಲಿತ ದಂಡ ಲೆಕ್ಕಾಚಾರ, ಗಡುವು ದಿನಾಂಕ
+                ನಿರ್ವಹಣೆ ಮತ್ತು ವಹಿವಾಟು ಲಾಗಿಂಗ್.</li>
+            <li><strong>ಕ್ರಿಯಾಶೀಲ ಒಳನೋಟಗಳು (Actionable Insights):</strong> ನಿರ್ಧಾರ ತೆಗೆದುಕೊಳ್ಳಲು ನೈಜ-ಸಮಯದ
+                ಡ್ಯಾಶ್‌ಬೋರ್ಡ್‌ಗಳು ಮತ್ತು ವಿವರವಾದ ಪಿಡಿಎಫ್/ಎಕ್ಸೆಲ್ ವರದಿಗಳು.</li>
+        </ul>
+
+        <h4>ವ್ಯವಸ್ಥೆಯನ್ನು ಬಳಸುವುದು ಹೇಗೆ</h4>
+        <p>ಉತ್ತಮ ಉತ್ಪಾದಕತೆಗಾಗಿ ಇಂಟರ್ಫೇಸ್ ಅನ್ನು ಎರಡು ಮುಖ್ಯ ಕ್ಷೇತ್ರಗಳಾಗಿ ವಿಂಗಡಿಸಲಾಗಿದೆ:</p>
+        <ul>
+            <li><strong>ಸೈಡ್‌ಬಾರ್ (Sidebar):</strong> ಎಡಭಾಗದಲ್ಲಿರುವ ಇದು, ಪುಸ್ತಕಗಳು, ವಿದ್ಯಾರ್ಥಿಗಳು ಮತ್ತು ಸೆಟ್ಟಿಂಗ್‌ಗಳಂತಹ
+                ವಿವಿಧ ಮಾಡ್ಯೂಲ್‌ಗಳನ್ನು ಪ್ರವೇಶಿಸಲು ನಿಮ್ಮ ಪ್ರಾಥಮಿಕ ನ್ಯಾವಿಗೇಷನ್ ಮೆನು ಆಗಿದೆ.</li>
+            <li><strong>ಡ್ಯಾಶ್‌ಬೋರ್ಡ್ (Dashboard):</strong> ನಿಮ್ಮ ಹೋಮ್ ಸ್ಕ್ರೀನ್, ಇದು ಒಟ್ಟು ಪುಸ್ತಕಗಳು, ಸಕ್ರಿಯ ವಿತರಣೆಗಳು
+                ಮತ್ತು ಅವಧಿ ಮೀರಿದ ಎಚ್ಚರಿಕೆಗಳಂತಹ ಪ್ರಮುಖ ಅಂಕಿಅಂಶಗಳನ್ನು ಒಂದೇ ನೋಟದಲ್ಲಿ ಪ್ರದರ್ಶಿಸುತ್ತದೆ.</li>
+        </ul>
+        <img src="manual/Dashboard-screenshot.png" alt="Dashboard Overview">
+        <div class="caption">ಚಿತ್ರ 1.1: ಪ್ರಮುಖ ಕಾರ್ಯಕ್ಷಮತೆ ಸೂಚಕಗಳೊಂದಿಗೆ ಮುಖ್ಯ ಡ್ಯಾಶ್‌ಬೋರ್ಡ್</div>
+    </section>
+
+    <!-- 2. Authentication -->
+    <section id="auth">
+        <h2>2. ದೃಢೀಕರಣ (Authentication)</h2>
+
+        <h3>ಸ್ಮಾರ್ಟ್ ದೃಢೀಕರಣ ಮತ್ತು ಸುರಕ್ಷತೆ</h3>
+        <p>ಅಧಿಕೃತ ಸಿಬ್ಬಂದಿಗೆ ಸುಗಮ ಪ್ರವೇಶವನ್ನು ನೀಡುವಾಗ ಸೂಕ್ಷ್ಮ ಗ್ರಂಥಾಲಯದ ಡೇಟಾವು ಸುರಕ್ಷಿತವಾಗಿರುವುದನ್ನು ಖಚಿತಪಡಿಸಿಕೊಳ್ಳಲು
+            ವ್ಯವಸ್ಥೆಯು ವ್ಯಾಪಕವಾದ ಭದ್ರತಾ ಪ್ರೋಟೋಕಾಲ್‌ಗಳನ್ನು ಬಳಸುತ್ತದೆ.</p>
+
+        <div class="callout tip">
+            <strong>ಭದ್ರತಾ ಟಿಪ್ಪಣಿ:</strong> ಅಪ್ಲಿಕೇಶನ್ ಪಾಸ್‌ವರ್ಡ್‌ಗಳಿಗಾಗಿ ಉದ್ಯಮ-ಗುಣಮಟ್ಟದ ಎನ್‌ಕ್ರಿಪ್ಶನ್ ಅನ್ನು ಬಳಸುತ್ತದೆ
+            ಮತ್ತು ಸುರಕ್ಷಿತ, ಲೋಕಲ್-ಫಸ್ಟ್ ಡೇಟಾಬೇಸ್ ಪರಿಸರವನ್ನು ನಿರ್ವಹಿಸುತ್ತದೆ.
+        </div>
+
+        <h4>1. ಬುದ್ಧಿವಂತ ಪಾತ್ರ-ಆಧಾರಿತ ಲಾಗಿನ್</h4>
+        <p>ಪ್ರವೇಶವನ್ನು <strong>ಪಾತ್ರ-ಆಧಾರಿತ ಪ್ರವೇಶ ನಿಯಂತ್ರಣ (RBAC)</strong> ವ್ಯವಸ್ಥೆಯ ಮೂಲಕ ಕಟ್ಟುನಿಟ್ಟಾಗಿ
+            ನಿಯಂತ್ರಿಸಲಾಗುತ್ತದೆ. ನಿಮ್ಮ ನಿಯೋಜಿತ ರುಜುವಾತುಗಳ ಆಧಾರದ ಮೇಲೆ ನಿಮ್ಮ ಡ್ಯಾಶ್‌ಬೋರ್ಡ್ ಅನುಭವವು ತಾನಾಗಿಯೇ
+            ಹೊಂದಿಕೊಳ್ಳುತ್ತದೆ:</p>
+
+        <ul class="check-list">
+            <li><strong>ನಿರ್ವಾಹಕರು (Admins):</strong> ಸೆಟ್ಟಿಂಗ್‌ಗಳು, ಸಿಬ್ಬಂದಿ ನಿರ್ವಹಣೆ ಮತ್ತು ಆಡಿಟ್ ಲಾಗ್‌ಗಳು ಸೇರಿದಂತೆ
+                ಪೂರ್ಣ ಸಿಸ್ಟಮ್ ನಿಯಂತ್ರಣ.</li>
+            <li><strong>ಸಿಬ್ಬಂದಿ (Staff):</strong> ವಹಿವಾಟು ಮತ್ತು ಸದಸ್ಯರ ನಿರ್ವಹಣೆಗಾಗಿ ಕಾರ್ಯಾಚರಣೆಯ ಪ್ರವೇಶ, ನಿರ್ಣಾಯಕ
+                ಸಿಸ್ಟಮ್ ಕಾನ್ಫಿಗರೇಶನ್‌ಗಳಿಂದ ನಿರ್ಬಂಧಿಸಲಾಗಿದೆ.</li>
+            <li><strong>ಗ್ರಂಥಪಾಲಕರು (Librarians):</strong> ಕ್ಯಾಟಲಾಗಿಂಗ್ ಮತ್ತು ದಿನನಿತ್ಯದ ಗ್ರಂಥಾಲಯ ಕಾರ್ಯಾಚರಣೆಗಳಿಗಾಗಿ
+                ಮೀಸಲಾದ ನೋಟ.</li>
+        </ul>
+
+        <div class="grid-2">
+            <div>
+                <img src="manual/Login Page.png" alt="Login Page">
+                <div class="caption">ಚಿತ್ರ 2.1: ಸುರಕ್ಷಿತ ಲಾಗಿನ್ ಇಂಟರ್ಫೇಸ್</div>
+            </div>
+            <div>
+                <p><strong>ಸ್ಮಾರ್ಟ್ ಲಾಗಿನ್ ವೈಶಿಷ್ಟ್ಯಗಳು:</strong></p>
+                <ul>
+                    <li><strong>ಖಾತೆ ಲಾಕ್ ಮಾಡುವಿಕೆ:</strong> ಬಹು ವಿಫಲ ಪ್ರಯತ್ನಗಳ ನಂತರ ಖಾತೆಯನ್ನು ಲಾಕ್ ಮಾಡುವ ಮೂಲಕ
+                        ಬ್ರೂಟ್-ಫೋರ್ಸ್ ದಾಳಿಗಳನ್ನು ತಡೆಯುತ್ತದೆ.</li>
+                    <li><strong>ಪಾಸ್‌ವರ್ಡ್ ತೋರಿಸಿ/ಮರೆಮಾಡಿ:</strong> ಟೈಪಿಂಗ್ ದೋಷಗಳನ್ನು ತಡೆಯಲು ಗೋಚರತೆಯನ್ನು ಬದಲಾಯಿಸಿ.</li>
+                    <li><strong>ಸಲ್ಲಿಸಲು ಎಂಟರ್ ಒತ್ತಿರಿ:</strong> ಕೀಬೋರ್ಡ್-ಮಾತ್ರ ಕೆಲಸದ ಹರಿವಿಗಾಗಿ ಆಪ್ಟಿಮೈಸ್ ಮಾಡಲಾಗಿದೆ.
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <h4>2. OTP-ಪರಿಶೀಲಿಸಿದ ಪಾಸ್‌ವರ್ಡ್ ಮರುಪಡೆಯುವಿಕೆ</h4>
+        <p>ನಿಮ್ಮ ರುಜುವಾತುಗಳನ್ನು ಮರೆತಿರುವಿರಾ? ನಿರ್ವಾಹಕರ ಹಸ್ತಕ್ಷೇಪವಿಲ್ಲದೆ ಪ್ರವೇಶವನ್ನು ಮರುಸ್ಥಾಪಿಸಲು ವ್ಯವಸ್ಥೆಯು ಸುರಕ್ಷಿತ,
+            OTP-ಆಧಾರಿತ ಮರುಪಡೆಯುವಿಕೆ ಕಾರ್ಯವಿಧಾನವನ್ನು ಒಳಗೊಂಡಿದೆ.</p>
+
+        <h5>ಮರುಪಡೆಯುವಿಕೆ ಹರಿವು:</h5>
+        <ol>
+            <li>ಲಾಗಿನ್ ಪರದೆಯಲ್ಲಿ <strong>Forgot Password?</strong> ಕ್ಲಿಕ್ ಮಾಡಿ.</li>
+            <li>ನಿಮ್ಮ ನೋಂದಾಯಿತ <strong>ಇಮೇಲ್ ವಿಳಾಸವನ್ನು</strong> ನಮೂದಿಸಿ.</li>
+            <li>ನಿಮ್ಮ ಇನ್‌ಬಾಕ್ಸ್‌ಗೆ ಕಳುಹಿಸಲಾದ <strong>6-ಅಂಕಿಯ OTP</strong> ಅನ್ನು ನಮೂದಿಸಿ.</li>
+            <li>ಹೊಸ, <strong>ಬಲವಾದ ಪಾಸ್‌ವರ್ಡ್</strong> ಅನ್ನು ಹೊಂದಿಸಿ.</li>
+        </ol>
+
+        <img src="manual/Forget password .png" alt="Forgot Password Screen" style="max-width: 600px;">
+        <div class="caption">ಚಿತ್ರ 2.2: ಪಾಸ್‌ವರ್ಡ್ ಮರುಹೊಂದಿಸುವ ಪ್ರಕ್ರಿಯೆ</div>
+    </section>
+
+    <!-- 3. Initial Setup -->
+    <section id="setup">
+        <h2>3. ಪ್ರಾರಂಭಿಕ ಸೆಟಪ್</h2>
+        <h3>ಸಿಸ್ಟಮ್ ಪ್ರಾರಂಭಿಕರಣ ಮತ್ತು ಮೊದಲ ಐಟಾಮ್ ವಿಝಾರ್ಡ್</h3>
+        <p>GPTK ಗ್ರಂಥಾಲಯ ನಿರ್ವಹಣಾ ವ್ಯವಸ್ಥೆಗೆ ಸುಸ್ವಾಗತ. ಮೊದಲ ಬಾರಿಗೆ ಲಾಂಚ್ ಮಾಡಿದಾಗ, ಅಪ್ಲಿಕೇಶನ್ ಸಮಗ್ರ <strong>ಸಿಸ್ಟಮ್
+                ಹೆಲ್ತ್ ಚೆಕ್</strong> ಅನ್ನು ಪ್ರಾರಂಭಿಸುತ್ತದೆ ಮತ್ತು ಉತ್ಪಾದನಾ ಬಳಕೆಗಾಗಿ ಡೇಟಾಬೇಸ್ ಅನ್ನು ಸಿದ್ಧಪಡಿಸಲು ಅಗತ್ಯವಿರುವ
+            ಕಾನ್ಫಿಗರೇಶನ್ ಹಂತಗಳ ಮೂಲಕ ನಿಮಗೆ ಮಾರ್ಗದರ್ಶನ ನೀಡುತ್ತದೆ.
+        </p>
+
+        <div class="callout tip">
+            <strong>ನೆಟ್‌ವರ್ಕ್ ಅವಶ್ಯಕತೆ:</strong> ಮೆಟಾಡೇಟಾ ಮತ್ತು ನವೀಕರಣಗಳನ್ನು ಪಡೆಯಲು ಆರಂಭಿಕ ಸೆಟಪ್ ಸಮಯದಲ್ಲಿ ನೀವು
+            ಇಂಟರ್ನೆಟ್‌ಗೆ ಸಂಪರ್ಕಗೊಂಡಿದ್ದೀರಿ ಎಂದು ಖಚಿತಪಡಿಸಿಕೊಳ್ಳಿ.
+        </div>
+
+        <h4>1. ಡೇಟಾಬೇಸ್ ಕಾನ್ಫಿಗರೇಶನ್</h4>
+        <p>ವ್ಯವಸ್ಥೆಯು ಎಂಬೆಡೆಡ್ ಮಂಗೋಡಿಬಿ ಪರಿಸರವನ್ನು ಸ್ವಯಂಚಾಲಿತವಾಗಿ ಪ್ರಾರಂಭಿಸುತ್ತದೆ. ಹಸ್ತಚಾಲಿತ ಡೇಟಾಬೇಸ್ ಸ್ಥಾಪನೆಯ
+            ಅಗತ್ಯವಿಲ್ಲ. ಡೇಟಾವನ್ನು ಸ್ಥಳೀಯವಾಗಿ ಇಲ್ಲಿ ಸಂಗ್ರಹಿಸಲಾಗುತ್ತದೆ:</p>
+        <ul class="check-list">
+            <li><strong>ಡೇಟಾಬೇಸ್:</strong> <code>./data/db</code></li>
+            <li><strong>ಬ್ಯಾಕಪ್‌ಗಳು:</strong> <code>./backups</code></li>
+            <li><strong>ಲಾಗ್‌ಗಳು:</strong> <code>./logs/app.log</code></li>
+        </ul>
+
+        <h4>2. ಸೂಪರ್ ಅಡ್ಮಿನ್ ರಚನೆ</h4>
+        <p>ರಚಿಸಲಾದ ಮೊದಲ ಬಳಕೆದಾರರಿಗೆ <strong>ಸೂಪರ್ ಅಡ್ಮಿನ್</strong> ಸವಲತ್ತುಗಳನ್ನು ನೀಡಲಾಗುತ್ತದೆ. ಈ ಖಾತೆಯು ಸಂಪೂರ್ಣ
+            ಸಿಸ್ಟಮ್‌ಗೆ ಬದಲಾಯಿಸಲಾಗದ ಪ್ರವೇಶವನ್ನು ಹೊಂದಿದೆ ಮತ್ತು ಅದನ್ನು ಅಳಿಸಲು ಸಾಧ್ಯವಿಲ್ಲ.</p>
+
+        <img src="manual/initial-setup-screenshot.png" alt="Setup Wizard">
+        <div class="caption">ಚಿತ್ರ 3.1: ನಿರ್ವಾಹಕ ಖಾತೆ ರಚನೆ</div>
+
+        <h5>ಕಾನ್ಫಿಗರೇಶನ್ ಹಂತಗಳು:</h5>
+        <ol>
+            <li><code>LibraryManager.exe</code> ಮೂಲಕ ಅಪ್ಲಿಕೇಶನ್ ಅನ್ನು ಪ್ರಾರಂಭಿಸಿ.</li>
+            <li>ಅನನ್ಯ <strong>ಸಂಸ್ಥೆಯ ID</strong> ಅನ್ನು ನಮೂದಿಸಿ (ಲೈಸೆನ್ಸ್ ಖರೀದಿಯ ನಂತರ ಒದಗಿಸಲಾಗುತ್ತದೆ).</li>
+            <li>ನಿಮ್ಮ ನಿರ್ವಾಹಕ ರುಜುವಾತುಗಳನ್ನು ರಚಿಸಿ (ಬಳಕೆದಾರಹೆಸರು ಮತ್ತು ಪಾಸ್‌ವರ್ಡ್).</li>
+            <li><strong>ಸಿಸ್ಟಮ್ ಹ್ಯಾಂಡ್‌ಶೇಕ್:</strong> ಅಪ್ಲಿಕೇಶನ್ ಸಮಗ್ರತೆಯನ್ನು ಪರಿಶೀಲಿಸುತ್ತದೆ ಮತ್ತು ಅಗತ್ಯ ಎನ್‌ಕ್ರಿಪ್ಶನ್
+                ಕೀಗಳನ್ನು ರಚಿಸುತ್ತದೆ.
+            </li>
+        </ol>
+
+        <div class="callout warning">
+            <strong>ಪ್ರಮುಖ:</strong> ಡೇಟಾ ಭ್ರಷ್ಟಾಚಾರವನ್ನು ತಡೆಯಲು "Initializing Database..." ಹಂತದಲ್ಲಿ ಅಪ್ಲಿಕೇಶನ್
+            ವಿಂಡೋವನ್ನು ಮುಚ್ಚಬೇಡಿ.
+        </div>
+    </section>
+
+    <!-- 4. Dashboard -->
+    <section id="dashboard">
+        <h2>4. ಡ್ಯಾಶ್‌ಬೋರ್ಡ್</h2>
+        <h3>ಡ್ಯಾಶ್‌ಬೋರ್ಡ್ ಮತ್ತು ನ್ಯಾವಿಗೇಷನ್ ಹಬ್</h3>
+        <p>ಡ್ಯಾಶ್‌ಬೋರ್ಡ್ GPTK ಗ್ರಂಥಾಲಯ ನಿರ್ವಹಣಾ ವ್ಯವಸ್ಥೆಯ ಕಮಾಂಡ್ ಸೆಂಟರ್ ಆಗಿ ಕಾರ್ಯನಿರ್ವಹಿಸುತ್ತದೆ, ಗ್ರಂಥಾಲಯದ ಕಾರ್ಯಾಚರಣೆಗಳ
+            ನೈಜ-ಸಮಯದ ದೃಶ್ಯಾವಳಿ ನೋಟ ಮತ್ತು ಎಲ್ಲಾ ಮಾಡ್ಯೂಲ್‌ಗಳಿಗೆ ತ್ವರಿತ ಪ್ರವೇಶವನ್ನು ನೀಡುತ್ತದೆ.</p>
+
+        <div class="grid-2">
+            <div>
+                <h4>ಸೈಡ್‌ಬಾರ್ ನ್ಯಾವಿಗೇಷನ್</h4>
+                <p>ಒಂದು ಅರ್ಥಗರ್ಭಿತ, ಕುಗ್ಗಿಸಬಹುದಾದ ಲಂಬ ಮೆನು ಇವುಗಳಿಗೆ ಒಂದು ಕ್ಲಿಕ್ ಪ್ರವೇಶವನ್ನು ಒದಗಿಸುತ್ತದೆ:</p>
+                <ul class="check-list">
+                    <li><strong>ಕೋರ್ ಮಾಡ್ಯೂಲ್‌ಗಳು:</strong> ಪುಸ್ತಕಗಳು, ವಿದ್ಯಾರ್ಥಿಗಳು, ವಿಭಾಗಗಳು.</li>
+                    <li><strong>ವಹಿವಾಟು ಡೆಸ್ಕ್:</strong> ವಿತರಣೆ, ಹಿಂತಿರುಗಿಸುವಿಕೆ ಮತ್ತು ನವೀಕರಣಗಳು.</li>
+                    <li><strong>ನಿರ್ವಾಹಕ ಪರಿಕರಗಳು:</strong> ಸಿಬ್ಬಂದಿ, ಸೆಟ್ಟಿಂಗ್‌ಗಳು, ಆಡಿಟ್ ಲಾಗ್‌ಗಳು.</li>
+                    <li><strong>ವಿಶ್ಲೇಷಣೆ:</strong> ದೈನಂದಿನ ವರದಿಗಳು ಮತ್ತು ಟ್ರೆಂಡ್‌ಗಳು.</li>
+                </ul>
+                <div class="callout tip">
+                    <strong>ವೃತ್ತಿಪರ ಸಲಹೆ:</strong> ಯಾವುದೇ ಪರದೆಯಿಂದ ಡ್ಯಾಶ್‌ಬೋರ್ಡ್‌ಗೆ ತಕ್ಷಣ ಹಿಂತಿರುಗಲು
+                    ಮೇಲಿನ-ಎಡಭಾಗದಲ್ಲಿರುವ ಗ್ರಂಥಾಲಯ ಲೋಗೋವನ್ನು ಕ್ಲಿಕ್ ಮಾಡಿ.
+                </div>
+            </div>
+            <div>
+                <img src="manual/Sidebar.png" alt="Sidebar" style="max-width: 250px;">
+                <div class="caption">ಚಿತ್ರ 4.1: ನ್ಯಾವಿಗೇಷನ್ ಸೈಡ್‌ಬಾರ್</div>
+            </div>
+        </div>
+
+        <h4>ನೈಜ-ಸಮಯದ ವಿಶ್ಲೇಷಣಾ ಕಾರ್ಡ್‌ಗಳು</h4>
+        <p>ಚಟುವಟಿಕೆಯೊಂದಿಗೆ ಪಲ್ಸ್ ಆಗುವ ಲೈವ್ ಡೇಟಾ ವಿಜೆಟ್‌ಗಳು:</p>
+        <img src="manual/Dashboard-screenshot.png" alt="Dashboard">
+        <div class="caption">ಚಿತ್ರ 4.2: ನೈಜ-ಸಮಯದ ಡ್ಯಾಶ್‌ಬೋರ್ಡ್ ವಿಶ್ಲೇಷಣೆ</div>
+
+        <ul class="check-list">
+            <li><strong>ಒಟ್ಟು ಪುಸ್ತಕಗಳು:</strong> ಕ್ಯಾಟಲಾಗ್‌ನಲ್ಲಿರುವ ವಿಶಿಷ್ಟ ಶೀರ್ಷಿಕೆಗಳ ಪ್ರಸ್ತುತ ಎಣಿಕೆ.</li>
+            <li><strong>ಸಕ್ರಿಯ ವಿತರಣೆಗಳು:</strong> ಪ್ರಸ್ತುತ ಸಾಲದ ಮೇಲೆ ಹೊರಗಿರುವ ಪುಸ್ತಕಗಳ ಸಂಖ್ಯೆ.</li>
+            <li><strong>ಸಂಚಲನ ವೇಗ:</strong> ಕಳೆದ 24 ಗಂಟೆಗಳಲ್ಲಿ ವಿತರಿಸಲಾದ ಪುಸ್ತಕಗಳು.</li>
+            <li><strong>ಗಡುವು ಮೀರಿದ ಎಚ್ಚರಿಕೆಗಳು:</strong> ಗಡುವು ದಿನಾಂಕ ಮೀರಿದ ಪುಸ್ತಕಗಳ ನಿರ್ಣಾಯಕ ಎಣಿಕೆ.</li>
+        </ul>
+    </section>
+
+    <!-- 5. Header -->
+    <section id="header">
+        <h2>5. ಹೆಡರ್ ಮತ್ತು ಸೆಟ್ಟಿಂಗ್‌ಗಳು</h2>
+
+        <h3>ಜಾಗತಿಕ ನಿಯಂತ್ರಣಗಳು</h3>
+        <p>ಮೇಲಿನ ನ್ಯಾವಿಗೇಷನ್ ಬಾರ್ ಎಲ್ಲಾ ಪರದೆಯ ಮೇಲೂ ಇರುತ್ತದೆ, ಇದು ವೈಯಕ್ತಿಕ ಆದ್ಯತೆಗಳು ಮತ್ತು ಸಿಸ್ಟಮ್-ವ್ಯಾಪಕ ಟಾಗಲ್‌ಗಳಿಗೆ
+            ತ್ವರಿತ ಪ್ರವೇಶವನ್ನು ನೀಡುತ್ತದೆ.</p>
+
+        <img src="manual/Header.png" alt="Header Bar">
+        <div class="caption">ಚಿತ್ರ 5.1: ಅಪ್ಲಿಕೇಶನ್ ಹೆಡರ್</div>
+
+        <ul>
+            <li><strong>ಭಾಷಾ ಸ್ವಿಚರ್:</strong> ಇಂಗ್ಲಿಷ್ ಮತ್ತು ಕನ್ನಡ ಇಂಟರ್ಫೇಸ್‌ಗಳ ನಡುವೆ ತಕ್ಷಣ ಬದಲಿಸಿ.</li>
+            <li><strong>ಫಾಂಟ್ ಗಾತ್ರ:</strong> ಉತ್ತಮ ಓದುವಿಕೆಗಾಗಿ ಪಠ್ಯದ ಗಾತ್ರವನ್ನು ಹೆಚ್ಚಿಸಿ/ಕಡಿಮೆ ಮಾಡಿ.</li>
+            <li><strong>ಥೀಮ್ ಟಾಗಲ್:</strong> ಲೈಟ್ ಮತ್ತು ಡಾರ್ಕ್ ಮೋಡ್‌ಗಳ ನಡುವೆ ಬದಲಿಸಿ.</li>
+            <li><strong>ಪ್ರೊಫೈಲ್ ಮೆನು:</strong> ಖಾತೆ ಸೆಟ್ಟಿಂಗ್‌ಗಳನ್ನು ಪ್ರವೇಶಿಸಿ ಅಥವಾ ಸುರಕ್ಷಿತವಾಗಿ ಲಾಗೌಟ್ ಮಾಡಿ.</li>
+        </ul>
+    </section>
+
+    <!-- 6. Book Catalog -->
+    <section id="books">
+        <h2>6. ಪುಸ್ತಕ ಕ್ಯಾಟಲಾಗ್</h2>
+        <h3>ಜ್ಞಾನ ಭಂಡಾರ</h3>
+        <p><strong>ಪುಸ್ತಕ ಕ್ಯಾಟಲಾಗ್</strong> ಗ್ರಂಥಾಲಯದ ಹೃದಯವಾಗಿದೆ. ಉಪ-ಮಿಲಿಸೆಕೆಂಡ್ ಹುಡುಕಾಟ ಮರುಪಡೆಯುವಿಕೆಯೊಂದಿಗೆ ಸಾವಿರಾರು
+            ದಾಖಲೆಗಳನ್ನು ನಿರ್ವಹಿಸಲು ಇದನ್ನು ವಿನ್ಯಾಸಗೊಳಿಸಲಾಗಿದೆ.</p>
+
+        <h4>1. ಕ್ಯಾಟಲಾಗ್ ಡ್ಯಾಶ್‌ಬೋರ್ಡ್</h4>
+        <p>ಟ್ಯಾಬ್ಯುಲರ್ ಗ್ರಿಡ್‌ನಲ್ಲಿ ನಿಮ್ಮ ಸಂಪೂರ್ಣ ಸಂಗ್ರಹವನ್ನು ವೀಕ್ಷಿಸಿ, ವಿಂಗಡಿಸಿ ಮತ್ತು ನಿರ್ವಹಿಸಿ.</p>
+
+        <img src="manual/Catlog page.png" alt="Catalog Page">
+        <div class="caption">ಚಿತ್ರ 6.1: ಕ್ಯಾಟಲಾಗ್ ವೀಕ್ಷಣೆ</div>
+
+        <ul class="check-list">
+            <li><strong>ಸ್ಮಾರ್ಟ್ ಹುಡುಕಾಟ:</strong> ಶೀರ್ಷಿಕೆ, ಲೇಖಕ, ಪ್ರಕಾಶಕ ಅಥವಾ ISBN ಮೂಲಕ ಪುಸ್ತಕಗಳನ್ನು ಹುಡುಕಿ.</li>
+            <li><strong>ಸುಧಾರಿತ ಫಿಲ್ಟರ್‌ಗಳು:</strong> ವರ್ಗ, ಭಾಷೆ ಅಥವಾ ಲಭ್ಯತೆಯ ಸ್ಥಿತಿಯ ಮೂಲಕ ವಿಂಗಡಿಸಿ.</li>
+            <li><strong>ತ್ವರಿತ ಕ್ರಮಗಳು:</strong> ಯಾವುದೇ ಸಾಲಿಗೆ ತಿದ್ದುಪಡಿ ಮಾಡಿ, ಅಳಿಸಿ ಅಥವಾ ವಿವರಗಳನ್ನು ವೀಕ್ಷಿಸಿ.</li>
+        </ul>
+
+        <h4>2. ಹೊಸ ಶೀರ್ಷಿಕೆಗಳನ್ನು ಸೇರಿಸುವುದು</h4>
+        <p>ಸರಳೀಕೃತ ಎಂಟ್ರಿ ಪ್ರಕ್ರಿಯೆಯೊಂದಿಗೆ ನಿಮ್ಮ ಗ್ರಂಥಾಲಯವನ್ನು ವಿಸ್ತರಿಸಿ.</p>
+
+        <h5>ವಿಧಾನ A: ಹಸ್ತಚಾಲಿತ ನಮೂದು (Manual Entry)</h5>
+        <ol>
+            <li><strong>Add New Book</strong> ಕ್ಲಿಕ್ ಮಾಡಿ.</li>
+            <li><strong>ಸ್ಕ್ಯಾನ್ ISBN:</strong> ಮೆಟಾಡೇಟಾವನ್ನು ಸ್ವಯಂಚಾಲಿತವಾಗಿ ತುಂಬಲು ಹ್ಯಾಂಡ್‌ಹೆಲ್ಡ್ ಸ್ಕ್ಯಾನರ್ ಬಳಸಿ.</li>
+            <li>ವಿವರಗಳನ್ನು ನಮೂದಿಸಿ: ಶೀರ್ಷಿಕೆ, ಲೇಖಕ, ಪ್ರಕಾಶಕರು, ಬೆಲೆ, ಇತ್ಯಾದಿ.</li>
+            <li>ಒಂದು <strong>ವರ್ಗ (Category)</strong> ಮತ್ತು ಶೆಲ್ಫ್ ಸ್ಥಳವನ್ನು ನಿಯೋಜಿಸಿ.</li>
+        </ol>
+
+        <img src="manual/Add New Book.png" alt="Add Book Modal">
+        <div class="caption">ಚಿತ್ರ 6.2: ಪುಸ್ತಕ ನಮೂದು ಫಾರ್ಮ್</div>
+
+        <h5>ವಿಧಾನ B: ಬಲ್ಕ್ ಇಂಪೋರ್ಟ್ (CSV)</h5>
+        <p>ಹಳೆಯ ಸಿಸ್ಟಮ್‌ನಿಂದ ಸ್ಥಳಾಂತರಗೊಳ್ಳುತ್ತಿದ್ದೀರಾ? ಸೆಕೆಂಡುಗಳಲ್ಲಿ ಸಾವಿರಾರು ದಾಖಲೆಗಳನ್ನು ಆಮದು ಮಾಡಿ.</p>
+
+        <div class="grid-2">
+            <div>
+                <ul class="check-list">
+                    <li><strong>ಟೆಂಪ್ಲೇಟ್:</strong> ಪೂರ್ವ-ಫಾರ್ಮ್ಯಾಟ್ ಮಾಡಿದ CSV ಟೆಂಪ್ಲೇಟ್ ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ.</li>
+                    <li><strong>ಮಾನ್ಯೀಕರಣ:</strong> ಆಮದು ಮಾಡುವ ಮೊದಲು ನಕಲಿ ISBN ಗಳಿಗಾಗಿ ಸಿಸ್ಟಮ್ ಪೂರ್ವ-ಪರಿಶೀಲಿಸುತ್ತದೆ.
+                    </li>
+                    <li><strong>CSV ಫಾರ್ಮ್ಯಾಟ್:</strong> ಹೆಡರ್‌ಗಳು ಹೊಂದಿಕೆಯಾಗುವುದನ್ನು ಖಚಿತಪಡಿಸಿಕೊಳ್ಳಿ:
+                        <code>Title</code>, <code>Author</code>,
+                        <code>ISBN</code>, <code>Publisher</code>, <code>Price</code>, <code>Category</code>,
+                        <code>Copies</code>.
+                    </li>
+                </ul>
+            </div>
+            <div>
+                <img src="manual/import books.png" alt="Import Books" style="margin:0;">
+                <div class="caption">ಚಿತ್ರ 6.3: ಬಲ್ಕ್ ಇಂಪೋರ್ಟ್ ಪರಿಕರ</div>
+            </div>
+        </div>
+
+        <h4>3. ಜೀವನಚಕ್ರ ನಿರ್ವಹಣೆ</h4>
+        <div class="grid-2">
+            <div>
+                <h5>ಪುಸ್ತಕ ವಿವರಗಳು</h5>
+                <p>ಪ್ರಸ್ತುತ ಸಾಲಗಾರ ಮತ್ತು ಹಿಂದಿನ ಸಂಚಲನ ಅಂಕಿಅಂಶಗಳು ಸೇರಿದಂತೆ ಸಂಪೂರ್ಣ ಇತಿಹಾಸವನ್ನು ವೀಕ್ಷಿಸಿ.</p>
+                <img src="manual/Book detials.png" alt="Book Details">
+            </div>
+            <div>
+                <h5>ಪ್ರತಿಗಳನ್ನು ನಿರ್ವಹಿಸುವುದು (Managing Copies)</h5>
+                <p>ಒಂದೇ ಶೀರ್ಷಿಕೆಯ ಪ್ರತ್ಯೇಕ ಭೌತಿಕ ಪ್ರತಿಗಳನ್ನು ಟ್ರ್ಯಾಕ್ ಮಾಡಿ, ಪ್ರತಿಯೊಂದೂ ಅನನ್ಯ ಪ್ರವೇಶ ಸಂಖ್ಯೆಯನ್ನು
+                    (Accession Number) ಹೊಂದಿರುತ್ತದೆ.</p>
+                <img src="manual/Mange Copies.png" alt="Copies Manager">
+            </div>
+        </div>
+    </section>
+
+    <!-- 7. Students -->
+    <section id="students">
+        <h2>7. ವಿದ್ಯಾರ್ಥಿ ನಿರ್ವಹಣೆ</h2>
+        <h3>ಸದಸ್ಯರ ಆಡಳಿತ</h3>
+        <p>ಪ್ರವೇಶದಿಂದ ಹಳೆಯ ವಿದ್ಯಾರ್ಥಿ ಸ್ಥಿತಿಯವರೆಗೆ ಸಂಪೂರ್ಣ ವಿದ್ಯಾರ್ಥಿ ಜೀವನಚಕ್ರವನ್ನು ನಿರ್ವಹಿಸಿ. ಕೇಂದ್ರೀಕೃತ ಡೈರೆಕ್ಟರಿಯು
+            ವಿದ್ಯಾರ್ಥಿಗಳನ್ನು ಅವರ ವಹಿವಾಟು ಇತಿಹಾಸಕ್ಕೆ ಲಿಂಕ್ ಮಾಡುತ್ತದೆ.</p>
+
+        <h4>1. ವಿದ್ಯಾರ್ಥಿ ಡೈರೆಕ್ಟರಿ</h4>
+        <p>ಎಲ್ಲಾ ನೋಂದಾಯಿತ ಗ್ರಂಥಾಲಯ ಸದಸ್ಯರ ಹುಡುಕಬಹುದಾದ ಡೇಟಾಬೇಸ್.</p>
+        <img src="manual/student page.png" alt="Student List">
+        <div class="caption">ಚಿತ್ರ 7.1: ವಿದ್ಯಾರ್ಥಿ ಡೈರೆಕ್ಟರಿ</div>
+
+        <h4>2. ನೋಂದಣಿ</h4>
+
+        <div class="grid-2">
+            <div>
+                <h5>ಹೊಸ ವಿದ್ಯಾರ್ಥಿ ನಮೂದು</h5>
+                <ol>
+                    <li><strong>Add Student</strong> ಕ್ಲಿಕ್ ಮಾಡಿ.</li>
+                    <li><strong>ವೈಯಕ್ತಿಕ ಡೇಟಾ:</strong> ಹೆಸರು, ಹುಟ್ಟಿದ ದಿನಾಂಕ, ಲಿಂಗ.</li>
+                    <li><strong>ಶೈಕ್ಷಣಿಕ ಡೇಟಾ:</strong> ವಿಭಾಗ, ರಿಜಿಸ್ಟರ್ ಸಂಖ್ಯೆ (USN), ಸೆಮಿಸ್ಟರ್.</li>
+                    <li><strong>ಸಂಪರ್ಕ:</strong> ಅಧಿಸೂಚನೆಗಳಿಗಾಗಿ ಇಮೇಲ್ ಮತ್ತು ಮೊಬೈಲ್.</li>
+                </ol>
+            </div>
+            <div>
+                <img src="manual/Add New Student.png" alt="Add Student" style="margin:0;">
+                <div class="caption">ಚಿತ್ರ 7.2: ವಿದ್ಯಾರ್ಥಿ ನೋಂದಣಿ</div>
+            </div>
+        </div>
+
+        <h5>ಬಲ್ಕ್ ಇಂಪೋರ್ಟ್ (CSV)</h5>
+        <p>ಬಲ್ಕ್ ಇಂಪೋರ್ಟ್ ಪರಿಕರವನ್ನು ಬಳಸಿಕೊಂಡು ಸಂಪೂರ್ಣ ತರಗತಿ ಪಟ್ಟಿಗಳನ್ನು ಅಪ್ಲೋಡ್ ಮಾಡಿ. ಸಿಸ್ಟಮ್ ಬುದ್ಧಿವಂತಿಕೆಯಿಂದ
+            ಕಾಲಮ್‌ಗಳನ್ನು ಮ್ಯಾಪ್ ಮಾಡುತ್ತದೆ ಮತ್ತು ದೋಷಗಳನ್ನು ಹೈಲೈಟ್ ಮಾಡುತ್ತದೆ.</p>
+        <div class="callout tip">
+            <strong>CSV ಹೆಡರ್‌ಗಳು:</strong> ಅಗತ್ಯವಿರುವ ಕಾಲಮ್‌ಗಳು: <code>Name</code>, <code>Register Number</code>,
+            <code>Department</code>, <code>Semester</code>, <code>Email</code>, <code>Mobile</code>.
+        </div>
+        <img src="manual/Student import.png" alt="Bulk Import Students">
+
+        <h4>3. ಡಿಜಿಟಲ್ ಐಡಿ ಕಾರ್ಡ್‌ಗಳು</h4>
+        <p>ವ್ಯವಸ್ಥೆಯು ಬಾರ್‌ಕೋಡ್‌ಗಳೊಂದಿಗೆ ಮುದ್ರಿಸಬಹುದಾದ ಐಡಿ ಕಾರ್ಡ್‌ಗಳನ್ನು ಸ್ವಯಂಚಾಲಿತವಾಗಿ ರಚಿಸುತ್ತದೆ.</p>
+        <img src="manual/Student ID Card Preview.png" alt="ID Card Preview" style="max-width: 400px;">
+        <div class="caption">ಚಿತ್ರ 7.3: ಸ್ವಯಂ-ರಚಿಸಿದ ಐಡಿ ಕಾರ್ಡ್</div>
+
+        <h4>4. ಪ್ರೊಫೈಲ್ ನಿರ್ವಹಣೆ</h4>
+        <p>ಪ್ರಸ್ತುತ ಸಾಲಗಳು, ದಂಡ ಇತಿಹಾಸ ಮತ್ತು ವೈಯಕ್ತಿಕ ವಿವರಗಳು ಸೇರಿದಂತೆ ಸಮಗ್ರ ವಿದ್ಯಾರ್ಥಿ ಪ್ರೊಫೈಲ್‌ಗಳನ್ನು ಪರಿಶೀಲಿಸಿ.</p>
+        <div class="grid-2">
+            <img src="manual/Student details.png" alt="Student Profile">
+            <img src="manual/Edit Student.png" alt="Edit Student">
+        </div>
+
+        <h4>5. ಡೇಟಾ ರಫ್ತು (Export)</h4>
+        <p>ಆಡಳಿತಾತ್ಮಕ ಬಳಕೆಗಾಗಿ ಅಥವಾ ಐಡಿ ಕಾರ್ಡ್ ಮುದ್ರಣ ಮಾರಾಟಗಾರರಿಗಾಗಿ ವಿದ್ಯಾರ್ಥಿ ಪಟ್ಟಿಗಳನ್ನು ರಫ್ತು ಮಾಡಿ.</p>
+        <img src="manual/student export.png" alt="Export Students" style="max-width: 600px;">
+    </section>
+
+    <!-- 8. Departments -->
+    <section id="departments">
+        <h2>8. ವಿಭಾಗ ನಿರ್ವಹಣೆ</h2>
+        <h3>ಸಂಸ್ಥೆ ಮತ್ತು ಶ್ರೇಣಿ ವ್ಯವಸ್ಥೆ</h3>
+        <p>ವಿದ್ಯಾರ್ಥಿಗಳನ್ನು ಗುಂಪುಗೂಡಿಸಲು ಮತ್ತು ವಿಭಾಗೀಯ ಬಳಕೆಯ ಟ್ರೆಂಡ್‌ಗಳನ್ನು ವಿಶ್ಲೇಷಿಸಲು ಪ್ರಮಾಣಿತ ಶೈಕ್ಷಣಿಕ ವಿಭಾಗಗಳನ್ನು
+            (ಉದಾಹರಣೆಗೆ, ಕಂಪ್ಯೂಟರ್ ಸೈನ್ಸ್, ಸಿವಿಲ್ ಎಂಜಿನಿಯರಿಂಗ್) ಆಯೋಜಿಸಿ.</p>
+
+        <img src="manual/Department page.png" alt="Departments Page">
+        <div class="caption">ಚಿತ್ರ 8.1: ವಿಭಾಗ ಪಟ್ಟಿ</div>
+
+
+        <div class="grid-2">
+            <div>
+                <h4>ವಿಭಾಗಗಳನ್ನು ರಚಿಸುವುದು (Creating Departments)</h4>
+                <img src="manual/Add department.png" alt="Add Dept">
+            </div>
+            <div>
+                <h4>ವಿವರಗಳನ್ನು ಮಾರ್ಪಡಿಸುವುದು</h4>
+                <img src="manual/edit deprartment.png" alt="Edit Dept">
+                <p><em>ಗಮನಿಸಿ: ವಿಭಾಗವನ್ನು ಮರುನಾಮಕರಣ ಮಾಡುವುದರಿಂದ, ಲಿಂಕ್ ಮಾಡಲಾದ ಎಲ್ಲಾ ವಿದ್ಯಾರ್ಥಿ ದಾಖಲೆಗಳನ್ನು
+                        ಸ್ವಯಂಚಾಲಿತವಾಗಿ ನವೀಕರಿಸಲಾಗುತ್ತದೆ.</em></p>
+            </div>
+        </div>
+
+        <div class="callout tip">
+            <strong>ಕಿರು ಸಂಕೇತಗಳು (Short Codes):</strong> ವರದಿಗಳಲ್ಲಿ ತ್ವರಿತ ಗುರುತಿಸುವಿಕೆಗಾಗಿ ಅನನ್ಯ ದೊಡ್ಡಕ್ಷರ ಸಂಕೇತಗಳನ್ನು
+            (ಉದಾಹರಣೆಗೆ, CS, ME, EC) ನಿಯೋಜಿಸಿ.
+        </div>
+    </section>
+
+    <!-- 9. Circulation -->
+    <section id="circulation">
+        <h2>9. ವಹಿವಾಟು ಡೆಸ್ಕ್</h2>
+        <h3>ವಹಿವಾಟು ಕಾರ್ಯಾಚರಣೆಗಳು</h3>
+        <p>ಗ್ರಂಥಾಲಯದ ನರ ಕೇಂದ್ರ. ಸರತಿ ಸಾಲಿನಲ್ಲಿ ನಿಲ್ಲುವ ಸಮಯವನ್ನು ಶೂನ್ಯವಾಗಿ ಇರಿಸಲು ತೀಕ್ಷ್ಣ ವೇಗದಲ್ಲಿ ವಿತರಣೆ,
+            ಹಿಂತಿರುಗಿಸುವಿಕೆ ಮತ್ತು ನವೀಕರಣಗಳನ್ನು ಪ್ರಕ್ರಿಯೆಗೊಳಿಸಿ.</p>
+
+        <h4>1. ವಹಿವಾಟು ಡ್ಯಾಶ್‌ಬೋರ್ಡ್</h4>
+        <p>ಎಲ್ಲಾ ದೈನಂದಿನ ವಹಿವಾಟುಗಳಿಗಾಗಿ ಏಕೀಕೃತ ಇಂಟರ್ಫೇಸ್.</p>
+        <img src="manual/Circulation page.png" alt="Circulation Dashboard">
+
+        <h4>2. ಪುಸ್ತಕ ವಿತರಣೆ (Checkout)</h4>
+        <div class="grid-2">
+            <div>
+                <h5>ಕೆಲಸದ ಹರಿವು:</h5>
+                <ol>
+                    <li><strong>ಟ್ಯಾಬ್ ಆಯ್ಕೆಮಾಡಿ:</strong> "Issue" ಕ್ಲಿಕ್ ಮಾಡಿ ಅಥವಾ <kbd>F1</kbd> ಒತ್ತಿರಿ.</li>
+                    <li><strong>ಸದಸ್ಯರನ್ನು ಗುರುತಿಸಿ:</strong> ವಿದ್ಯಾರ್ಥಿ ಐಡಿಯನ್ನು ಸ್ಕ್ಯಾನ್ ಮಾಡಿ ಅಥವಾ ರಿಜಿಸ್ಟರ್
+                        ಸಂಖ್ಯೆಯನ್ನು ಟೈಪ್ ಮಾಡಿ.</li>
+                    <li><strong>ಐಟಂ ಅನ್ನು ಗುರುತಿಸಿ:</strong> ಪುಸ್ತಕದ ಪ್ರವೇಶ ಸಂಖ್ಯೆಯನ್ನು ಸ್ಕ್ಯಾನ್ ಮಾಡಿ.</li>
+                    <li><strong>ಪರಿಶೀಲಿಸಿ ಮತ್ತು ಒಪ್ಪಿಸಿ:</strong> ಬ್ಲಾಕ್‌ಗಳು/ಗಡುವು ಮೀರಿದವುಗಳಿಗಾಗಿ ಪರಿಶೀಲಿಸಿ, ನಂತರ
+                        <strong>Issue Book</strong> ಕ್ಲಿಕ್ ಮಾಡಿ.
+                    </li>
+                </ol>
+                <div class="callout tip">
+                    <strong>ಶಾರ್ಟ್‌ಕಟ್:</strong> ಟೈಪ್ ಮಾಡಿದ ನಂತರ ವಿವರಗಳನ್ನು ತಕ್ಷಣ ಪಡೆಯಲು <kbd>Enter</kbd> ಒತ್ತಿರಿ.
+                </div>
+            </div>
+            <div>
+                <img src="manual/Issue Tab.png" alt="Issue Interface" style="margin:0;">
+                <div class="caption">ಚಿತ್ರ 9.2: ತ್ವರಿತ ಚೆಕ್‌ಔಟ್</div>
+            </div>
+        </div>
+
+        <h4>3. ಪುಸ್ತಕಗಳನ್ನು ಹಿಂತಿರುಗಿಸುವುದು (Check-in)</h4>
+        <div class="grid-2">
+            <div>
+                <img src="manual/Retuen Tab.png" alt="Return Interface" style="margin:0;">
+                <div class="caption">ಚಿತ್ರ 9.3: ಹಿಂತಿರುಗಿಸುವಿಕೆ ಮತ್ತು ದಂಡಗಳು</div>
+            </div>
+            <div>
+                <h5>ಕೆಲಸದ ಹರಿವು:</h5>
+                <ol>
+                    <li>"Return" ಟ್ಯಾಬ್‌ಗೆ ಬದಲಾಯಿಸಿ ಅಥವಾ <kbd>F2</kbd> ಒತ್ತಿರಿ.</li>
+                    <li><strong>ಐಟಂ ಸ್ಕ್ಯಾನ್ ಮಾಡಿ:</strong> ಪ್ರವೇಶ ಸಂಖ್ಯೆಯನ್ನು ನಮೂದಿಸಿ.</li>
+                    <li><strong>ಆಟೋ-ಕ್ಯಾಲ್ಕ್:</strong> ಸಿಸ್ಟಮ್ ತಡವಾದ ಶುಲ್ಕವನ್ನು ತಕ್ಷಣ ಲೆಕ್ಕಾಚಾರ ಮಾಡುತ್ತದೆ.</li>
+                    <li><strong>ಪೂರ್ಣಗೊಳಿಸಿ:</strong> <strong>Return Book</strong> ಕ್ಲಿಕ್ ಮಾಡಿ. ದಂಡವಿದ್ದರೆ, ಪಾವತಿ ಮೋಡಲ್
+                        ಕಾಣಿಸಿಕೊಳ್ಳುತ್ತದೆ.</li>
+                </ol>
+            </div>
+        </div>
+
+        <h4>4. ದಂಡ ನಿರ್ವಹಣೆ</h4>
+        <p><strong>ದಂಡಗಳ ಟ್ಯಾಬ್ (Fines Tab)</strong> (<kbd>F3</kbd>) ಬಾಕಿ ಸಂಗ್ರಹಣೆ ಮತ್ತು ಇತಿಹಾಸವನ್ನು ನಿರ್ವಹಿಸುತ್ತದೆ.</p>
+
+        <div class="grid-2">
+            <div>
+                <h5>ಬಾಕಿ ಸಂಗ್ರಹಿಸುವುದು</h5>
+                <ol>
+                    <li>ಬಾಕಿ ಇರುವ ವಿದ್ಯಾರ್ಥಿಯನ್ನು ಆಯ್ಕೆಮಾಡಿ.</li>
+                    <li>ಸಿಸ್ಟಮ್ ಒಟ್ಟು ಮೊತ್ತವನ್ನು ತೋರಿಸುತ್ತದೆ.</li>
+                    <li>ವಹಿವಾಟನ್ನು ರೆಕಾರ್ಡ್ ಮಾಡಲು <strong>Pay</strong> ಕ್ಲಿಕ್ ಮಾಡಿ.</li>
+                </ol>
+                <img src="manual/Fines Tab.png" alt="Fines Tab">
+            </div>
+            <div>
+                <h5>ದಂಡದ ಇತಿಹಾಸ</h5>
+                <p>ಹಿಂದಿನ ಪಾವತಿಗಳ ವಿವರವಾದ ಲೆಡ್ಜರ್ ವೀಕ್ಷಿಸಿ.</p>
+                <img src="manual/Fine history.png" alt="Fine History">
+            </div>
+        </div>
+
+        <h4>5. ರಸೀದಿ ಪರಿಶೀಲನೆ</h4>
+        <p>ಸುರಕ್ಷಿತ ಡಿಜಿಟಲ್ ಸಹಿಯನ್ನು ಬಳಸಿಕೊಂಡು ಭೌತಿಕ ರಸೀದಿಗಳ ನೈಜತೆಯನ್ನು ಪರಿಶೀಲಿಸಿ.</p>
+        <div class="grid-2">
+            <img src="manual/Verfiy Receipt.png" alt="Verify Receipt">
+            <div>
+                <ol>
+                    <li><strong>Verify Receipt</strong> ಬಟನ್ ಕ್ಲಿಕ್ ಮಾಡಿ.</li>
+                    <li><strong>ರಸೀದಿ ID</strong> ನಮೂದಿಸಿ.</li>
+                    <li>ಸಿಸ್ಟಮ್ SHA-256 ಸಹಿಯನ್ನು ಮೌಲ್ಯೀಕರಿಸುತ್ತದೆ ಮತ್ತು ಮೂಲ ವಿವರಗಳನ್ನು ತೋರಿಸುತ್ತದೆ.</li>
+                </ol>
+            </div>
+        </div>
+    </section>
+
+    <!-- 10. Transactions -->
+    <section id="transactions">
+        <h2>10. ವಹಿವಾಟು ಇತಿಹಾಸ</h2>
+        <h3>ಹಣಕಾಸು ಆಡಿಟ್ ಟ್ರಯಲ್</h3>
+        <p><strong>ವಹಿವಾಟು ಇತಿಹಾಸ</strong> ಮಾಡ್ಯೂಲ್ ಎಲ್ಲಾ ಹಣಕಾಸಿನ ಕಾರ್ಯಾಚರಣೆಗಳ ಪಾರದರ್ಶಕ, ಬದಲಾಯಿಸಲಾಗದ ಲೆಡ್ಜರ್ ಅನ್ನು
+            ಒದಗಿಸುತ್ತದೆ. ದೈನಂದಿನ ಮರುಸಂಗ್ರಹಣೆಗೆ ಅತ್ಯಗತ್ಯ.</p>
+
+        <h4>1. ಲಾಗ್ (Log)</h4>
+        <p>ನೈಜ-ಸಮಯದ ಪಾವತಿಗಳ ಕಾಲಾನುಕ್ರಮದ ಫೀಡ್.</p>
+        <img src="manual/Transactions History.png" alt="Transaction Log">
+
+        <h4>2. ವಿವರಗಳು ಮತ್ತು ರಸೀದಿಗಳು</h4>
+        <div class="grid-2">
+            <div>
+                <h5>ದಾಖಲೆಯನ್ನು ಪರಿಶೀಲಿಸುವುದು:</h5>
+                <ol>
+                    <li>ಕೋಷ್ಟಕದಲ್ಲಿನ ಯಾವುದೇ ಸಾಲನ್ನು ಕ್ಲಿಕ್ ಮಾಡಿ.</li>
+                    <li><strong>ರಸೀದಿ ಪೂರ್ವವೀಕ್ಷಣೆ:</strong> ಡಿಜಿಟಲ್ ರಸೀದಿಯನ್ನು ವೀಕ್ಷಿಸಿ.</li>
+                    <li><strong>ಮೆಟಾಡೇಟಾ:</strong> ಟೈಮ್‌ಸ್ಟ್ಯಾಂಪ್, ಕ್ಯಾಷಿಯರ್, ಮೋಡ್ ಪರಿಶೀಲಿಸಿ.</li>
+                    <li><strong>ಸ್ಥಿತಿ:</strong> ಯಶಸ್ಸು/ರದ್ದು ಸ್ಥಿತಿಯನ್ನು ಪರಿಶೀಲಿಸಿ.</li>
+                </ol>
+            </div>
+            <div>
+                <img src="manual/Transaction Details.png" alt="Transaction Details" style="margin:0;">
+            </div>
+        </div>
+
+        <h4>3. ವರದಿ ಮಾಡುವಿಕೆ</h4>
+        <p>ದಿನಾಂಕ ಶ್ರೇಣಿಯ ಮೂಲಕ ಫಿಲ್ಟರ್ ಮಾಡಿ ಮತ್ತು ಲೆಕ್ಕಪತ್ರ ನಿರ್ವಹಣೆಗಾಗಿ CSV/Excel ಗೆ ರಫ್ತು ಮಾಡಿ.</p>
+        <img src="manual/Transaction History export.png" alt="Transaction Export" style="max-width: 600px;">
+    </section>
+
+    <!-- 11. Reports -->
+    <section id="reports">
+        <h2>11. ವರದಿಗಳು ಮತ್ತು ವಿಶ್ಲೇಷಣೆ</h2>
+        <h3>ವ್ಯೂಹಾತ್ಮಕ ಒಳನೋಟಗಳು</h3>
+        <p>ಕಚ್ಚಾ ಡೇಟಾವನ್ನು ಕ್ರಿಯಾಶೀಲ ಬುದ್ಧಿವಂತಿಕೆಯಾಗಿ ಪರಿವರ್ತಿಸಿ. ಸಂಚಲನ ಟ್ರೆಂಡ್‌ಗಳು ಮತ್ತು ದಾಸ್ತಾನು ಆರೋಗ್ಯವನ್ನು ಟ್ರ್ಯಾಕ್
+            ಮಾಡಿ.</p>
+
+        <h4>1. ದೈನಂದಿನ ಚಟುವಟಿಕೆ</h4>
+        <p>ಇಂದಿನ ಕಾರ್ಯಾಚರಣೆಗಳ ಸ್ನ್ಯಾಪ್‌ಶಾಟ್: ಚೆಕ್‌-ಇನ್‌ಗಳು, ಚೆಕ್‌-ಔಟ್, ಹೊಸ ನೋಂದಣಿಗಳು, ದಂಡ ಸಂಗ್ರಹಣೆಗಳು.</p>
+        <img src="manual/Reports - Daily Activity.png" alt="Daily Report">
+
+        <h4>2. ವಿಶ್ಲೇಷಣೆ ಮತ್ತು ಟ್ರೆಂಡ್‌ಗಳು</h4>
+        <img src="manual/Report- Analytics & Insights.png" alt="Analytics Charts">
+        <ul class="check-list">
+            <li><strong>ಹೆಚ್ಚು ವಿತರಿಸಿದ ಪುಸ್ತಕಗಳು:</strong> ಬೇಡಿಕೆಯ ಆಧಾರದ ಮೇಲೆ ಖರೀದಿಯನ್ನು ಯೋಜಿಸಿ.</li>
+            <li><strong>ಪೀಕ್ ಅವರ್ಸ್:</strong> ಸಿಬ್ಬಂದಿ ಬಳಕೆಯ ವಿಶ್ಲೇಷಣೆ.</li>
+            <li><strong>ವಿಭಾಗೀಯ ಬಳಕೆ:</strong> ಶಾಖೆಯ ತೊಡಗಿಸಿಕೊಳ್ಳುವಿಕೆಯನ್ನು ಹೋಲಿಕೆ ಮಾಡಿ.</li>
+        </ul>
+
+        <h4>3. ಕಸ್ಟಮ್ ರಫ್ತುಗಳು</h4>
+        <p>ನಿರ್ದಿಷ್ಟ ದಿನಾಂಕ ಶ್ರೇಣಿಗಳಿಗಾಗಿ ಪಿಡಿಎಫ್ ಅಥವಾ ಎಕ್ಸೆಲ್ ವರದಿಗಳನ್ನು ರಚಿಸಿ.</p>
+        <img src="manual/Report export.png" alt="Report Export" style="max-width: 600px;">
+    </section>
+
+    <!-- 12. Staff -->
+    <section id="staff">
+        <h2>12. ಸಿಬ್ಬಂದಿ ನಿರ್ವಹಣೆ</h2>
+        <h3>ಕಾರ್ಯಪಡೆ ನಿರ್ವಹಣೆ</h3>
+        <p>ಕಾರ್ಯಾಚರಣೆಗಳನ್ನು ಸುರಕ್ಷಿತವಾಗಿ ನಿಯೋಜಿಸಿ. ಗ್ರಂಥಪಾಲಕರು ಮತ್ತು ಸಹಾಯಕರಿಗೆ ಪಾತ್ರಗಳನ್ನು ನಿಯೋಜಿಸಿ.</p>
+
+        <img src="manual/Staff page.png" alt="Staff Directory">
+
+        <h4>ಸಿಬ್ಬಂದಿಯನ್ನು ಸೇರಿಸುವುದು</h4>
+        <div class="grid-2">
+            <div>
+                <ol>
+                    <li><strong>Add Staff</strong> ಕ್ಲಿಕ್ ಮಾಡಿ.</li>
+                    <li><strong>ಪಾತ್ರ ಆಯ್ಕೆ:</strong>
+                        <ul>
+                            <li><em>ಗ್ರಂಥಪಾಲಕ (Librarian):</em> ಪೂರ್ಣ ಕ್ಯಾಟಲಾಗ್ ಮತ್ತು ವಿದ್ಯಾರ್ಥಿ ಪ್ರವೇಶ.</li>
+                            <li><em>ಸಹಾಯಕ (Assistant):</em> ವಹಿವಾಟು ಡೆಸ್ಕ್ ಮಾತ್ರ.</li>
+                        </ul>
+                    </li>
+                    <li>ರುಜುವಾತುಗಳನ್ನು ಹೊಂದಿಸಿ.</li>
+                </ol>
+            </div>
+            <div>
+                <img src="manual/Add new Staff.png" alt="Add Staff Modal" style="margin:0;">
+            </div>
+        </div>
+
+        <h4>ಖಾತೆ ನಿರ್ವಹಣೆ</h4>
+        <p>ಸಂಪರ್ಕಗಳನ್ನು ನವೀಕರಿಸಿ, ಪಾಸ್‌ವರ್ಡ್‌ಗಳನ್ನು ಮರುಹೊಂದಿಸಿ ಅಥವಾ ಖಾತೆಗಳನ್ನು ನಿಷ್ಕ್ರಿಯಗೊಳಿಸಿ.</p>
+        <img src="manual/Edit Staff.png" alt="Edit Staff" style="max-width: 600px;">
+    </section>
+
+    <!-- 13. Admin -->
+    <section id="admin">
+        <h2>13. ನಿರ್ವಾಹಕ ನಿರ್ವಹಣೆ (Admin Management)</h2>
+        <h3>ಸಿಸ್ಟಮ್ ಆಡಳಿತ</h3>
+        <p>ಸೂಪರ್ ಬಳಕೆದಾರರಿಗಾಗಿ ಕಮಾಂಡ್ ಸೆಂಟರ್. ಸೆಟ್ಟಿಂಗ್‌ಗಳು, ಆಡಿಟ್‌ಗಳು ಮತ್ತು ನಿರ್ಣಾಯಕ ದಾಖಲೆಗಳಿಗೆ ಅನಿಯಮಿತ ಪ್ರವೇಶ.</p>
+
+        <div class="callout danger">
+            <strong>ಭದ್ರತಾ ಎಚ್ಚರಿಕೆ:</strong> ವಿಶ್ವಾಸಾರ್ಹ ಹಿರಿಯ ಸಿಬ್ಬಂದಿಗೆ ಮಾತ್ರ ನಿರ್ವಾಹಕ ಪ್ರವೇಶವನ್ನು ನೀಡಿ. ನಿರ್ವಾಹಕರು
+            ದಾಖಲೆಗಳನ್ನು ಶಾಶ್ವತವಾಗಿ ಅಳಿಸಬಹುದು.
+        </div>
+
+        <img src="manual/Admin page.png" alt="Admin List">
+
+        <div class="grid-2">
+            <div>
+                <h4>ನಿರ್ವಾಹಕರನ್ನು ರಚಿಸುವುದು</h4>
+                <img src="manual/New Admin.png" alt="New Admin">
+            </div>
+            <div>
+                <h4>ರುಜುವಾತುಗಳನ್ನು ನಿರ್ವಹಿಸುವುದು</h4>
+                <img src="manual/Edit Admin.png" alt="Edit Admin">
+                <p>ಗಮನಿಸಿ: ರೂಟ್ ಅಡ್ಮಿನ್ (Root Admin) ಅಳಿಸಲು ಸಾಧ್ಯವಿಲ್ಲ.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 14. Audit -->
+    <section id="audit">
+        <h2>14. ಆಡಿಟ್ ಲಾಗ್‌ಗಳು</h2>
+        <h3>ಸುರಕ್ಷತೆ ಮತ್ತು ಹೊಣೆಗಾರಿಕೆ</h3>
+        <p>ಪ್ರತಿ ನಿರ್ಣಾಯಕ ಕ್ರಿಯೆಯ ಬದಲಾಯಿಸಲಾಗದ ದಾಖಲೆ. ಭದ್ರತಾ ಮಾನಿಟರಿಂಗ್‌ಗೆ ಪ್ರಾಥಮಿಕ ಸಾಧನ.</p>
+
+        <h4>1. ಚಟುವಟಿಕೆ ಮಾನಿಟರಿಂಗ್</h4>
+        <ul class="check-list">
+            <li><strong>ನಟ (Actor):</strong> ಕ್ರಿಯೆಯನ್ನು ಯಾರು ನಿರ್ವಹಿಸಿದರು.</li>
+            <li><strong>ಕ್ರಿಯೆ (Action):</strong> ಯಾವ ಕಾರ್ಯಾಚರಣೆ (ಉದಾಹರಣೆಗೆ, ಪುಸ್ತಕ ಅಳಿಸಲಾಗಿದೆ).</li>
+            <li><strong>ಗುರಿ (Target):</strong> ಯಾವ ದಾಖಲೆಯ ಮೇಲೆ ಪರಿಣಾಮ ಬೀರಿದೆ.</li>
+            <li><strong>ಟೈಮ್‌ಸ್ಟ್ಯಾಂಪ್:</strong> ನಿಖರವಾದ ಸಮಯ.</li>
+            </p>
+            <img src="manual/Audit page.png" alt="Audit Log">
+
+            <h4>2. ಅನುಸರಣೆ ರಫ್ತು (Compliance Export)</h4>
+            <p>ಬಾಹ್ಯ ಲೆಕ್ಕಪರಿಶೋಧನೆಗಾಗಿ ಪೂರ್ಣ ಲಾಗ್‌ಗಳನ್ನು ರಫ್ತು ಮಾಡಿ.</p>
+            <img src="manual/Audit export.png" alt="Audit Export" style="max-width: 600px;">
+    </section>
+
+    <!-- 15. Policies -->
+    <section id="policies">
+        <h2>15. ಸಿಸ್ಟಮ್ ನಿಯಮಗಳು (System Policies)</h2>
+        <h3>ಕಾರ್ಯಾಚರಣೆಯ ನಿಯಮಗಳ ಎಂಜಿನ್</h3>
+        <p>ಸಾಲದ ಮಿತಿಗಳಿಂದ ದಂಡದವರೆಗೆ ಗ್ರಂಥಾಲಯದ ಕಾರ್ಯಾಚರಣೆಗಳನ್ನು ನಿಯಂತ್ರಿಸುವ ತರ್ಕವನ್ನು ವಿವರಿಸಿ.</p>
+
+        <div class="grid-2">
+            <div>
+                <h4>ವಹಿವಾಟು ನಿಯಮಗಳು</h4>
+                <p>ಪ್ರತಿ ವಿದ್ಯಾರ್ಥಿಗೆ ಗರಿಷ್ಠ ಪುಸ್ತಕಗಳು, ಸಾಲದ ಅವಧಿಗಳು (ದಿನಗಳು) ಮತ್ತು ನವೀಕರಣ ಮಿತಿಗಳನ್ನು ಹೊಂದಿಸಿ.</p>
+                <img src="manual/Policies - Borrowings Rules.png" alt="Circulation Rules" style="margin:0;">
+            </div>
+            <div>
+                <h4>ಹಣಕಾಸು ನಿಯಮಗಳು</h4>
+                <p>ಪ್ರತಿ ದಿನಕ್ಕೆ ದಂಡದ ಮೊತ್ತ, ಗ್ರೇಸ್ ಪೀರಿಯಡ್‌ಗಳು ಮತ್ತು ಕರೆನ್ಸಿ ಚಿಹ್ನೆಗಳನ್ನು ಕಾನ್ಫಿಗರ್ ಮಾಡಿ.</p>
+                <img src="manual/Policies - Financials.png" alt="Financial Policies" style="margin:0;">
+            </div>
+        </div>
+    </section>
+
+    <!-- 16. Settings -->
+    <section id="settings">
+        <h2>16. ಸಿಸ್ಟಮ್ ಸೆಟ್ಟಿಂಗ್‌ಗಳು</h2>
+        <h3>ಜಾಗತಿಕ ಕಾನ್ಫಿಗರೇಶನ್ ಹಬ್</h3>
+        <p>ಮೂಲಸೌಕರ್ಯ, ಭದ್ರತೆ ಮತ್ತು ಆಟೊಮೇಷನ್‌ಗಾಗಿ ನಿಯಂತ್ರಣ ಕೇಂದ್ರ.</p>
+
+        <h4>1. ಗೋಚರತೆ (Appearance)</h4>
+        <div class="grid-2">
+            <div>
+                <ul class="check-list">
+                    <li><strong>ಥೀಮ್:</strong> ಲೈಟ್/ಡಾರ್ಕ್ ಮೋಡ್.</li>
+                    <li><strong>ಭಾಷೆ:</strong> ಇಂಗ್ಲಿಷ್/ಕನ್ನಡ.</li>
+                    <li><strong>ಸ್ಕೇಲಿಂಗ್:</strong> ಫಾಂಟ್ ಗಾತ್ರ ಹೊಂದಾಣಿಕೆಗಳು.</li>
+                </ul>
+            </div>
+            <img src="manual/Settings- Appearance.png" alt="Appearance Settings" style="margin:0;">
+        </div>
+
+        <h4>2. ಹಾರ್ಡ್‌ವೇರ್</h4>
+        <p>ಬಾರ್‌ಕೋಡ್ ಸ್ಕ್ಯಾನರ್‌ಗಳನ್ನು ಕಾನ್ಫಿಗರ್ ಮಾಡಿ ಮತ್ತು ಸಾಧನ ಆರೋಗ್ಯ ತಪಾಸಣೆಗಳನ್ನು ಚಲಾಯಿಸಿ.</p>
+        <ul class="check-list">
+            <li><strong>ಸ್ಕ್ಯಾನರ್ ಕಾನ್ಫಿಗರೇಶನ್:</strong> ಸ್ವಯಂ-ಸಲ್ಲಿಕೆಗಾಗಿ 'Enter' ಕೀ ಅನುತ್ಯಯವನ್ನು (suffix) ಸೇರಿಸಲು
+                ನಿಮ್ಮ ಸ್ಕ್ಯಾನರ್ ಅನ್ನು ಹೊಂದಿಸಿ.</li>
+            <li><strong>ಪರೀಕ್ಷೆ:</strong> ಸ್ಕ್ಯಾನು ವೇಗ ಮತ್ತು ನಿಖರತೆಯನ್ನು ಪರಿಶೀಲಿಸಲು ಅಂತರ್ನಿರ್ಮಿತ ಡಯಾಗ್ನೋಸ್ಟಿಕ್ ಟೂಲ್
+                ಬಳಸಿ.</li>
+        </ul>
+        <img src="manual/Settings Hardware.png" alt="Hardware Settings" style="max-width: 600px;">
+
+        <h4>3. ಭದ್ರತೆ</h4>
+        <p>ನಿರ್ವಾಹಕ ಪಾಸ್‌ವರ್ಡ್‌ಗಳನ್ನು ಬದಲಾಯಿಸಿ ಮತ್ತು ಸೆಷನ್ ಸಮಯ ಮೀರಿದ ಸೆಟ್ಟಿಂಗ್‌ಗಳನ್ನು (timeouts) ಕಾನ್ಫಿಗರ್ ಮಾಡಿ.</p>
+        <img src="manual/Settings Security.png" alt="Security Settings" style="max-width: 600px;">
+
+        <h4>4. ಡೇಟಾ ಮತ್ತು ನಿರ್ವಹಣೆ</h4>
+        <p>ಬ್ಯಾಕಪ್‌ಗಳು, ಕ್ಲೌಡ್ ಸಂಪರ್ಕಗಳು ಮತ್ತು ಕ್ಯಾಶ್ ತೆರವುಗೊಳಿಸುವಿಕೆಯನ್ನು ನಿರ್ವಹಿಸಿ.</p>
+        <div class="grid-2">
+            <img src="manual/Settings Data & Maintenance.png" alt="Data Settings">
+            <img src="manual/Settings Data Enrichment.png" alt="Enrichment Tools">
+        </div>
+
+        <h5>1. ಕ್ಲೌಡ್ ಡೇಟಾಬೇಸ್ ರಚನೆ (MongoDB Atlas)</h5>
+        <p>MongoDB Atlas ಅನ್ನು ಬಳಸಿಕೊಂಡು ಉಚಿತ, ಸುರಕ್ಷಿತ ಕ್ಲೌಡ್ ಡೇಟಾಬೇಸ್ ಅನ್ನು ಹೊಂದಿಸುವ ಮೂಲಕ ಈ ವಿಭಾಗವು ನಿಮಗೆ ಮಾರ್ಗದರ್ಶನ
+            ನೀಡುತ್ತದೆ, ನೀವು ಅನೇಕ ಕಂಪ್ಯೂಟರ್‌ಗಳಿಂದ ನಿಮ್ಮ ಗ್ರಂಥಾಲಯ ಡೇಟಾವನ್ನು ಪ್ರವೇಶಿಸಲು ಬಯಸಿದರೆ ಇದು ಅಗತ್ಯವಾಗಿರುತ್ತದೆ.</p>
+
+        <ol class="step-list">
+            <li>
+                <span class="step-title">ಸೈನ್ ಅಪ್ ಮತ್ತು ಖಾತೆ ರಚನೆ</span>
+                <span class="step-desc"><a href="https://www.mongodb.com/cloud/atlas/register" target="_blank">MongoDB
+                        Atlas ಸೇವೆಗೆ</a> ಹೋಗಿ ಮತ್ತು ಉಚಿತ ಖಾತೆಯನ್ನು ರಚಿಸಿ. ವೇಗವಾಗಿ ಪ್ರವೇಶಿಸಲು ನಿಮ್ಮ Google ಖಾತೆಯನ್ನು
+                    ಬಳಸುವುದು ಶಿಫಾರಸು ಮಾಡಲಾಗಿದೆ.</span>
+            </li>
+            <li>
+                <span class="step-title">ಉಚಿತ ಕ್ಲಸ್ಟರ್ ನಿಯೋಜನೆ</span>
+                <span class="step-desc">
+                    <ul class="sub-steps">
+                        <li>ಸ್ವಾಗತ ಪರದೆಯಲ್ಲಿ, <strong>Shared</strong> UI ಆಯ್ಕೆಯನ್ನು (ಉಚಿತ) ಆರಿಸಿ.</li>
+                        <li>ಒದಗಿಸುವವರನ್ನು (AWS) ಮತ್ತು ನಿಮ್ಮ ಹತ್ತಿರದ ಪ್ರದೇಶವನ್ನು (ಉದಾಹರಣೆಗೆ, Mumbai/Singapore) ಆಯ್ಕೆಮಾಡಿ.
+                        </li>
+                        <li>ಕೆಳಭಾಗದಲ್ಲಿರುವ <strong>Create Cluster</strong> ಕ್ಲಿಕ್ ಮಾಡಿ.</li>
+                    </ul>
+                </span>
+            </li>
+            <li>
+                <span class="step-title">ಡೇಟಾಬೇಸ್ ಬಳಕೆದಾರರನ್ನು ರಚಿಸಿ</span>
+                <span class="step-desc">
+                    <ul class="sub-steps">
+                        <li>ಎಡ ಸೈಡ್‌ಬಾರ್‌ನಲ್ಲಿ <strong>Security > Database Access</strong> ಗೆ ನ್ಯಾವಿಗೇಟ್ ಮಾಡಿ.</li>
+                        <li><strong>Add New Database User</strong> ಕ್ಲಿಕ್ ಮಾಡಿ.</li>
+                        <li><strong>Password</strong> ದೃಢೀಕರಣವನ್ನು ಆರಿಸಿ.</li>
+                        <li>ಬಳಕೆದಾರಹೆಸರು (ಉದಾಹರಣೆಗೆ, <code>admin</code>) ಮತ್ತು ಒಂದು <strong>ಬಲವಾದ ಪಾಸ್‌ವರ್ಡ್</strong>
+                            ಅನ್ನು ನಮೂದಿಸಿ. </li>
+                        <li><strong>ಪ್ರಮುಖ:</strong> ಈಗಲೇ ಈ ಪಾಸ್‌ವರ್ಡ್ ಅನ್ನು ಕಾಪಿ ಮಾಡಿ; ನೀವು ಅದನ್ನು ಮತ್ತೆ ನೋಡುವುದಿಲ್ಲ.
+                        </li>
+                        <li><strong>Add User</strong> ಕ್ಲಿಕ್ ಮಾಡಿ.</li>
+                    </ul>
+                </span>
+            </li>
+            <li>
+                <span class="step-title">IP ವಿಳಾಸವನ್ನು ವೈಟ್‌ಲಿಸ್ಟ್ ಮಾಡಿ</span>
+                <span class="step-desc">
+                    ನಿಮ್ಮ ಗ್ರಂಥಾಲಯ ಕಂಪ್ಯೂಟರ್ ಸಂಪರ್ಕಿಸಲು ಅನುಮತಿಸಲು:
+                    <ul class="sub-steps">
+                        <li><strong>Security > Network Access</strong> ಗೆ ಹೋಗಿ.</li>
+                        <li><strong>Add IP Address</strong> ಕ್ಲಿಕ್ ಮಾಡಿ.</li>
+                        <li><strong>Allow Access from Anywhere</strong> (<code>0.0.0.0/0</code> ನಮೂದಿಸಿ) ಆಯ್ಕೆಮಾಡಿ.
+                            ಡೈನಾಮಿಕ್ IP ಗಳನ್ನು ಹೊಂದಿರುವ ಶಾಲೆಗಳಿಗೆ ಇದು ಸುಲಭವಾದ ವಿಧಾನವಾಗಿದೆ.</li>
+                        <li><strong>Confirm</strong> ಕ್ಲಿಕ್ ಮಾಡಿ.</li>
+                    </ul>
+                </span>
+            </li>
+            <li>
+                <span class="step-title">ಸಂಪರ್ಕ ಸ್ಟ್ರಿಂಗ್ ಪಡೆಯಿರಿ</span>
+                <span class="step-desc">
+                    <ul class="sub-steps">
+                        <li><strong>Database</strong> (Deployment) ಗೆ ಹಿಂತಿರುಗಿ.</li>
+                        <li>ನಿಮ್ಮ ಕ್ಲಸ್ಟರ್ ಕಾರ್ಡ್‌ನಲ್ಲಿ <strong>Connect</strong> ಕ್ಲಿಕ್ ಮಾಡಿ.</li>
+                        <li><strong>Drivers</strong> ಆಯ್ಕೆಮಾಡಿ.</li>
+                        <li>ಆವೃತ್ತಿ <strong>4.1 or later</strong> ನೊಂದಿಗೆ <strong>Node.js</strong> ಆಯ್ಕೆಮಾಡಲಾಗಿದೆ ಎಂದು
+                            ಖಚಿತಪಡಿಸಿಕೊಳ್ಳಿ.</li>
+                    </ul>
+                    ಕನೆಕ್ಷನ್ ಸ್ಟ್ರಿಂಗ್ ಈ ರೀತಿ ಕಾಣುತ್ತದೆ ಅದನ್ನು ಕಾಪಿ ಮಾಡಿ:
+                    <div class="code-block">
+                        mongodb+srv://admin:&lt;password&gt;@cluster0.mongodb.net/?retryWrites=true&w=majority</div>
+                </span>
+            </li>
+        </ol>
+
+        <h5>2. MongoDB ಗೆ ಸಂಪರ್ಕಿಸಲಾಗುತ್ತಿದೆ</h5>
+        <p>ಒಮ್ಮೆ ನೀವು ನಿಮ್ಮ ಸಂಪರ್ಕ ಸ್ಟ್ರಿಂಗ್ ಅನ್ನು ಹೊಂದಿದ್ದರೆ, ಡೇಟಾವನ್ನು ಎಲ್ಲಿ ಹುಡುಕಬೇಕು ಎಂದು ಗ್ರಂಥಾಲಯ ನಿರ್ವಹಣಾ
+            ವ್ಯವಸ್ಥೆಗೆ ತಿಳಿಸಿ.</p>
+
+        <ol class="step-list">
+            <li>
+                <span class="step-title">ಡೇಟಾ ಸೆಟ್ಟಿಂಗ್‌ಗಳನ್ನು ತೆರೆಯಿರಿ</span>
+                <span class="step-desc">ಅಪ್ಲಿಕೇಶನ್‌ನಲ್ಲಿ, <strong>Settings (Gear Icon) > Data & Maintenance</strong>
+                    ಟ್ಯಾಬ್‌ಗೆ ಹೋಗಿ.</span>
+            </li>
+            <li>
+                <span class="step-title">ಕನೆಕ್ಷನ್ ಸ್ಟ್ರಿಂಗ್ ಅನ್ನು ನಮೂದಿಸಿ</span>
+                <span class="step-desc">"Database Connection String" ಕ್ಷೇತ್ರದಲ್ಲಿ ನಿಮ್ಮ URI ಅನ್ನು ಪೇಸ್ಟ್ ಮಾಡಿ.
+                    <br><strong>ಸಲಹೆ:</strong> ಹಂತ 3 ರಲ್ಲಿ ನೀವು ರಚಿಸಿದ ನೈಜ ಪಾಸ್‌ವರ್ಡ್‌ನೊಂದಿಗೆ ನೀವು
+                    <code>&lt;password&gt;</code> ಅನ್ನು ಬದಲಾಯಿಸಬೇಕು. ಕೋನ ಆವರಣಗಳನ್ನು (angle brackets) ತೆಗೆದುಹಾಕಿ!</span>
+            </li>
+            <li>
+                <span class="step-title">ಪರೀಕ್ಷಿಸಿ ಮತ್ತು ಉಳಿಸಿ</span>
+                <span class="step-desc"><strong>Test Connection</strong> ಕ್ಲಿಕ್ ಮಾಡಿ. ಯಶಸ್ವಿಯಾದರೆ, <strong>Save</strong>
+                    ಕ್ಲಿಕ್ ಮಾಡಿ. ಬದಲಾವಣೆಗಳನ್ನು ಅನ್ವಯಿಸಲು ಅಪ್ಲಿಕೇಶನ್ ಮರುಪ್ರಾರಂಭಗೊಳ್ಳುತ್ತದೆ.</span>
+            </li>
+        </ol>
+        <div class="callout warning">
+            <strong>ನೆಟ್‌ವರ್ಕ್ ಪ್ರವೇಶ:</strong> ಕ್ಲೌಡ್ ಡೇಟಾಬೇಸ್ ಬಳಸುತ್ತಿದ್ದರೆ, ನಿಮ್ಮ ಪ್ರಸ್ತುತ IP ವಿಳಾಸವನ್ನು MongoDB
+            Atlas ಡ್ಯಾಶ್‌ಬೋರ್ಡ್‌ನಲ್ಲಿ (Network Access > Add IP Address) ವೈಟ್‌ಲಿಸ್ಟ್ ಮಾಡಲಾಗಿದೆ ಎಂದು ಖಚಿತಪಡಿಸಿಕೊಳ್ಳಿ.
+        </div>
+
+        <h4>5. ಇಮೇಲ್ ಕಾನ್ಫಿಗರೇಶನ್</h4>
+        <p>ಸ್ವಯಂಚಾಲಿತ ಇಮೇಲ್ ಅಧಿಸೂಚನೆಗಳಿಗಾಗಿ SMTP ಅನ್ನು ಹೊಂದಿಸಿ.</p>
+
+        <h5>Gmail ಅಪ್ಲಿಕೇಶನ್ ಪಾಸ್‌ವರ್ಡ್ ರಚಿಸುವುದು</h5>
+        <p>ಸುರಕ್ಷತೆಗಾಗಿ ಮೂರನೇ ವ್ಯಕ್ತಿಯ ಅಪ್ಲಿಕೇಶನ್‌ಗಳಿಂದ ಪ್ರಮಾಣಿತ ಲಾಗಿನ್‌ಗಳನ್ನು Google ತಡೆಯುತ್ತದೆ. ಇಮೇಲ್‌ಗಳನ್ನು ಕಳುಹಿಸಲು
+            LMS ಅನ್ನು ಅನುಮತಿಸಲು ನೀವು ನಿರ್ದಿಷ್ಟ "ಅಪ್ಲಿಕೇಶನ್ ಪಾಸ್‌ವರ್ಡ್" ("App Password") ಅನ್ನು ರಚಿಸಬೇಕು.</p>
+
+        <ol class="step-list">
+            <li>
+                <span class="step-title">ಭದ್ರತಾ ಸೆಟ್ಟಿಂಗ್‌ಗಳನ್ನು ಪ್ರವೇಶಿಸಿ</span>
+                <span class="step-desc">ನಿಮ್ಮ Gmail ಖಾತೆಗೆ ಲಾಗ್ ಇನ್ ಮಾಡಿ ಮತ್ತು <a
+                        href="https://myaccount.google.com/security" target="_blank">Google ಖಾತೆ ಭದ್ರತೆಗೆ</a> ನ್ಯಾವಿಗೇಟ್
+                    ಮಾಡಿ.</span>
+            </li>
+            <li>
+                <span class="step-title">2-ಹಂತದ ಪರಿಶೀಲನೆಯನ್ನು ಸಕ್ರಿಯಗೊಳಿಸಿ</span>
+                <span class="step-desc">"How you sign in to Google" ಗೆ ಸ್ಕ್ರಾಲ್ ಮಾಡಿ. <strong>2-Step
+                        Verification</strong> ಆಫ್ ಆಗಿದ್ದರೆ, ಅದನ್ನು ಆನ್ ಮಾಡಿ. ಇದು ಕಡ್ಡಾಯವಾಗಿದೆ.</span>
+            </li>
+            <li>
+                <span class="step-title">ಅಪ್ಲಿಕೇಶನ್ ಪಾಸ್‌ವರ್ಡ್‌ಗಳನ್ನು ಹುಡುಕಿ</span>
+                <span class="step-desc">ಪುಟದ ಮೇಲ್ಭಾಗದಲ್ಲಿರುವ ಹುಡುಕಾಟ ಪಟ್ಟಿಯನ್ನು ಬಳಸಿ. <strong>"App passwords"</strong>
+                    ಎಂದು ಟೈಪ್ ಮಾಡಿ ಮತ್ತು ಕಾಣಿಸಿಕೊಳ್ಳುವ ಫಲಿತಾಂಶವನ್ನು ಕ್ಲಿಕ್ ಮಾಡಿ.</span>
+            </li>
+            <li>
+                <span class="step-title">ಹೊಸ ಪಾಸ್‌ವರ್ಡ್ ರಚಿಸಿ</span>
+                <span class="step-desc">
+                    <ul class="sub-steps">
+                        <li><strong>ಅಪ್ಲಿಕೇಶನ್ ಆಯ್ಕೆಮಾಡಿ:</strong> "Other (Custom Name)" ಆಯ್ಕೆಮಾಡಿ.</li>
+                        <li><strong>ಹೆಸರನ್ನು ಟೈಪ್ ಮಾಡಿ:</strong> "GPTK Library App" ಎಂದು ನಮೂದಿಸಿ.</li>
+                        <li><strong>Generate</strong> ಕ್ಲಿಕ್ ಮಾಡಿ.</li>
+                    </ul>
+                </span>
+            </li>
+            <li>
+                <span class="step-title">ಕಾಪಿ ಮಾಡಿ ಮತ್ತು ಬಳಸಿ</span>
+                <span class="step-desc">
+                    16-ಅಕ್ಷರದ ಕೋಡ್ ಕಾಣಿಸಿಕೊಳ್ಳುತ್ತದೆ (ಉದಾಹರಣೆಗೆ, <code>wxy zabc defg hijk</code>). ಈ ಕೋಡ್ ಅನ್ನು ಕಾಪಿ
+                    ಮಾಡಿ ಮತ್ತು ಅದನ್ನು LMS <strong>SMTP Password</strong> ಕ್ಷೇತ್ರದಲ್ಲಿ ಪೇಸ್ಟ್ ಮಾಡಿ. Save ಕ್ಲಿಕ್ ಮಾಡಿ.
+                </span>
+            </li>
+        </ol>
+        <div class="callout warning">
+            <strong>ಭದ್ರತೆ:</strong> ಈ ಅಪ್ಲಿಕೇಶನ್ ಪಾಸ್‌ವರ್ಡ್ ಅನ್ನು ನಿಮ್ಮ ಬ್ಯಾಂಕಿಂಗ್ ಪಿನ್‌ನಂತೆ ಪರಿಗಣಿಸಿ. ಅದನ್ನು ಎಂದಿಗೂ
+            ಹಂಚಿಕೊಳ್ಳಬೇಡಿ.
+        </div>
+
+
+        <img src="manual/Settings Email Configuration.png" alt="Email Settings" style="max-width: 600px;">
+    </section>
+
+    <!-- 17. Health -->
+    <section id="health">
+        <h2>17. ಸಿಸ್ಟಮ್ ಆರೋಗ್ಯ</h2>
+        <h3>ಡಯಾಗ್ನೋಸ್ಟಿಕ್ಸ್ ಡ್ಯಾಶ್‌ಬೋರ್ಡ್</h3>
+        <p>ಸಿಪಿಯು ಲೋಡ್, ರಾಮ್ ಬಳಕೆ ಮತ್ತು ಡಿಸ್ಕ್ ಸ್ಥಳದಂತಹ ನೈಜ-ಸಮಯದ ಕಾರ್ಯಕ್ಷಮತೆ ಮೆಟ್ರಿಕ್‌ಗಳನ್ನು ಮೇಲ್ವಿಚಾರಣೆ ಮಾಡಿ.</p>
+
+        <img src="manual/System Health.png" alt="System Health">
+
+        <div class="callout tip">
+            <strong>ವೃತ್ತಿಪರ ಸಲಹೆ:</strong> ಮೆಮೊರಿ ಬಳಕೆಯು ದೀರ್ಘಕಾಲದವರೆಗೆ ಹೆಚ್ಚಿದ್ದರೆ (>90%) ಅಪ್ಲಿಕೇಶನ್ ಅನ್ನು
+            ಮರುಪ್ರಾರಂಭಿಸಿ.
+        </div>
+    </section>
+
+    <!-- 18. Public -->
+    <section id="public">
+        <h2>18. ಸಾರ್ವಜನಿಕ ಪುಟಗಳು</h2>
+        <h3>ಲ್ಯಾಂಡಿಂಗ್ ಮತ್ತು ಬಗ್ಗೆ (About)</h3>
+        <p>ಲಾಗಿನ್ ಆಗುವ ಮೊದಲು ಸಂದರ್ಶಕರಿಗೆ ಸಾರ್ವಜನಿಕ-ಮುಖಿ ಪೋರ್ಟಲ್.</p>
+
+        <div class="grid-2">
+            <img src="manual/Landing page.png" alt="Landing Page">
+            <img src="manual/About page.png" alt="About Page">
+        </div>
+    </section>
+
+    <footer>
+        <p class="caption">GPTK ಗ್ರಂಥಾಲಯ ನಿರ್ವಹಣಾ ವ್ಯವಸ್ಥೆಗಾಗಿ ರಚಿಸಲಾಗಿದೆ | &copy; 2026</p>
+    </footer>
+
+</body>
+
+</html>

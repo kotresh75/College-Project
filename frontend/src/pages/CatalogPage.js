@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Search, Plus, Upload, Filter, Grid, List as ListIcon, ArrowUpDown, Trash2, Download, BookOpen, Book, BarChart2, MoreVertical, X, CheckCircle, AlertTriangle } from 'lucide-react';
 import { usePreferences } from '../context/PreferencesContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useTutorial } from '../context/TutorialContext';
 import GlassSelect from '../components/common/GlassSelect';
 import { useSocket } from '../context/SocketContext';
 import SmartAddBookModal from '../components/books/SmartAddBookModal';
@@ -17,7 +18,12 @@ import PdfPreviewModal from '../components/common/PdfPreviewModal';
 const CatalogPage = () => {
     const socket = useSocket();
     const { t } = useLanguage();
+    const { setPageContext } = useTutorial();
     const [books, setBooks] = useState([]);
+
+    useEffect(() => {
+        setPageContext('books');
+    }, []);
     const [loading, setLoading] = useState(true);
     const [successModal, setSuccessModal] = useState({ isOpen: false, title: '', message: '' });
     const [search, setSearch] = useState('');

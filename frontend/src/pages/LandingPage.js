@@ -5,6 +5,8 @@ import { usePreferences } from '../context/PreferencesContext';
 import { useLanguage } from '../context/LanguageContext';
 import logo from '../assets/logo.png';
 import StatusModal from '../components/common/StatusModal';
+import LogoParticles from '../components/common/LogoParticles';
+import InteractiveBG from '../components/common/InteractiveBG';
 
 const LandingPage = () => {
     const navigate = useNavigate();
@@ -34,8 +36,8 @@ const LandingPage = () => {
 
     return (
         <div className="landing-container">
-            {/* Background Animation Layer */}
-            <div className="gradient-bg"></div>
+            {/* Interactive Background Animation Layer */}
+            <InteractiveBG />
 
             {/* Main Content Layout */}
             <div className="landing-panel glass-panel">
@@ -77,14 +79,12 @@ const LandingPage = () => {
 
                 {/* 2. Hero Content */}
                 <main className="landing-hero">
-                    <div className="hero-text-group">
-                        <h1 className="hero-title">
-                            {t('landing.welcome')}
-                        </h1>
-                        <h2 className="hero-subtitle-gradient">
-                            {t('landing.subtitle')}
-                        </h2>
-                    </div>
+                    <LogoParticles
+                        logoSrc={logo}
+                        title={t('landing.welcome')}
+                        subtitle={t('landing.subtitle')}
+                        hideLogo
+                    />
 
                     <p className="hero-description">
                         {t('landing.description')}

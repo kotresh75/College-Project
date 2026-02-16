@@ -4,6 +4,7 @@ import { History, Search, Filter, BookOpen, AlertCircle, CheckCircle, Clock, Arr
 import TransactionDetailsModal from '../components/common/TransactionDetailsModal';
 import { useLanguage } from '../context/LanguageContext';
 import { useSocket } from '../context/SocketContext';
+import { useTutorial } from '../context/TutorialContext';
 import GlassSelect from '../components/common/GlassSelect';
 import SmartExportModal from '../components/common/SmartExportModal';
 import SmartTransactionTable from '../components/history/SmartTransactionTable';
@@ -11,6 +12,10 @@ import PdfPreviewModal from '../components/common/PdfPreviewModal';
 
 const TransactionHistoryPage = () => {
     const { t } = useLanguage();
+    const { setPageContext } = useTutorial();
+    useEffect(() => {
+        setPageContext('transactions');
+    }, []);
     const [transactions, setTransactions] = useState([]);
     const [loading, setLoading] = useState(false);
     const [search, setSearch] = useState('');

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, User, Lock, Check, Zap, Shield, AlertCircle, CheckCircle, Info } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { X, Save, User, Lock, Check, Zap, Shield, AlertCircle, Info } from 'lucide-react';
 import GlassSelect from '../common/GlassSelect';
 import ConfirmationModal from '../common/ConfirmationModal';
 import StatusModal from '../common/StatusModal';
@@ -47,10 +48,16 @@ const AddStaffModal = ({ staff, onClose, onSave }) => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [showPresetHint, setShowPresetHint] = useState(false);
+    const [mounted, setMounted] = useState(false);
 
     // Modals
     const [confirmConfig, setConfirmConfig] = useState({ show: false, action: null });
     const [statusModal, setStatusModal] = useState({ show: false, type: 'success', title: '', message: '' });
+
+    useEffect(() => {
+        setMounted(true);
+        return () => setMounted(false);
+    }, []);
 
     useEffect(() => {
         if (staff) {
@@ -63,6 +70,8 @@ const AddStaffModal = ({ staff, onClose, onSave }) => {
             });
         }
     }, [staff]);
+
+    if (!mounted) return null;
 
     // Handle designation change and suggest permissions
     const handleDesignationChange = (designation) => {
@@ -192,7 +201,7 @@ const AddStaffModal = ({ staff, onClose, onSave }) => {
         }
     };
 
-    return (
+    return createPortal(
         <div className="smart-form-overlay" onClick={onClose}>
             <div className="smart-form-modal" onClick={e => e.stopPropagation()} style={{ width: '650px' }}>
 
@@ -217,7 +226,7 @@ const AddStaffModal = ({ staff, onClose, onSave }) => {
                         </div>
                     )}
 
-                    <form id="staff-form" onSubmit={handleSubmit}>
+                    <form id="staff-form" onSubmit={handleSubmit} style={{ display: 'contents' }}>
 
                         {/* Name & Email Row */}
                         <div className="form-row">
@@ -357,28 +366,26 @@ const AddStaffModal = ({ staff, onClose, onSave }) => {
                             <Info size={16} color="#9f7aea" style={{ flexShrink: 0, marginTop: '2px' }} />
                             <span>
                                 {isEdit
-                                    ? 'Changes will take effect immediately.'
-                                    : 'Default password is "password123" - staff should change it on first login.'
+                                    ? t('staff.modal.hint_edit')
+                                    : t('staff.modal.hint_new')
                                 }
                             </span>
                         </div>
 
-                        {/* Footer - Inside Form */}
-                        <div className="smart-form-footer" style={{ margin: '0 -24px -24px -24px', padding: '20px 24px' }}>
-                            {isEdit ? (
-                                <button type="button" onClick={handleResetPassword} className="btn-cancel" style={{ color: '#fc8181', borderColor: '#fc8181' }}>
-                                    <Lock size={14} style={{ marginRight: 6 }} /> {t('staff.modal.reset_pwd')}
-                                </button>
-                            ) : <div></div>}
-                            <div style={{ display: 'flex', gap: '16px' }}>
-                                <button type="button" onClick={onClose} className="btn-cancel">{t('staff.modal.cancel')}</button>
-                                <button type="submit" className="btn-submit" disabled={loading}>
-                                    {loading ? t('staff.modal.saving') : <><Save size={18} /> {isEdit ? t('staff.modal.update') : t('staff.modal.save')}</>}
-                                </button>
-                            </div>
-                        </div>
-
                     </form>
+                </div>
+
+                {/* Footer */}
+                <div className="smart-form-footer">
+                    {isEdit && (
+                        <button type="button" onClick={handleResetPassword} className="btn-cancel" style={{ marginRight: 'auto', color: '#fc8181', borderColor: '#fc8181', display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <Lock size={14} /> {t('staff.modal.reset_pwd')}
+                        </button>
+                    )}
+                    <button type="button" onClick={onClose} className="btn-cancel">{t('staff.modal.cancel')}</button>
+                    <button type="submit" form="staff-form" className="btn-submit" disabled={loading}>
+                        {loading ? t('staff.modal.saving') : <><Save size={18} /> {isEdit ? t('staff.modal.update') : t('staff.modal.save')}</>}
+                    </button>
                 </div>
 
             </div>
@@ -400,8 +407,8 @@ const AddStaffModal = ({ staff, onClose, onSave }) => {
                 title={statusModal.title}
                 message={statusModal.message}
             />
-
-        </div>
+        </div>,
+        document.body
     );
 };
 

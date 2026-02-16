@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Book, User, Calendar, Clock, AlertTriangle, AlertCircle } from 'lucide-react';
 
 const DashboardDetailModal = ({ type, onClose }) => {
@@ -39,7 +40,7 @@ const DashboardDetailModal = ({ type, onClose }) => {
             });
     }, [type]);
 
-    return (
+    return createPortal(
         <div className="modal-overlay" style={{
             position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
             background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(5px)',
@@ -163,7 +164,8 @@ const DashboardDetailModal = ({ type, onClose }) => {
                     )}
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
 

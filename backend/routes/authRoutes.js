@@ -13,5 +13,6 @@ router.post('/forgot-password', authController.requestPasswordReset);
 router.post('/verify-otp', authController.verifyOTP);
 router.post('/reset-password', authController.resetPassword);
 router.post('/change-password', verifyToken, authController.changePassword);
+router.put('/profile-icon', verifyToken, authController.updateProfileIcon);
 
 module.exports = router;

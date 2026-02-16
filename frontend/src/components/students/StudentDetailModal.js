@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, User, BookOpen, DollarSign, Calendar, Mail, Phone, MapPin, AlertCircle, Clock, CheckCircle, Info, Hash, Award, AlertTriangle, Check, CreditCard } from 'lucide-react';
 import TransactionDetailsModal from '../common/TransactionDetailsModal';
 import IDCardPreviewModal from './IDCardPreviewModal'; // Updated import
@@ -78,7 +79,7 @@ const StudentDetailModal = ({ student, onClose }) => {
         setTimeout(() => setCopiedId(false), 2000);
     };
 
-    return (
+    return createPortal(
         <div className="smart-detail-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
             <div className="smart-detail-modal" style={{ height: '700px', width: '900px' }}>
 
@@ -270,7 +271,8 @@ const StudentDetailModal = ({ student, onClose }) => {
                     onClose={() => setShowIDCard(false)}
                 />
             )}
-        </div>
+        </div>,
+        document.body
     );
 };
 

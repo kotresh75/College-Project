@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { usePreferences } from '../context/PreferencesContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useTutorial } from '../context/TutorialContext';
 import { useSocket } from '../context/SocketContext';
 import { Book, Users, Repeat, AlertCircle, DollarSign, PackageX } from 'lucide-react';
 import {
@@ -18,7 +19,12 @@ import DashboardDetailModal from '../components/dashboard/DashboardDetailModal';
 const DashboardHome = () => {
     const navigate = useNavigate();
     const { t } = useLanguage();
+    const { setPageContext } = useTutorial();
     const [stats, setStats] = useState(null);
+
+    useEffect(() => {
+        setPageContext('dashboard');
+    }, []);
     const [charts, setCharts] = useState({
         booksByDept: [],
         studentsByDept: [],
@@ -112,7 +118,7 @@ const DashboardHome = () => {
             <h1 className="dashboard-title mb-6">{t('dashboard.overview')}</h1>
 
             {/* KPI Section - Grid with Navigation */}
-            <div className="dashboard-kpi-grid">
+            <div className="dashboard-kpi-grid stagger-children">
                 {(userRole === 'Admin' || userPermissions.includes('CATALOG')) && (
                     <StatsCard
                         title={t('dashboard.total_books')}
@@ -170,7 +176,7 @@ const DashboardHome = () => {
             </div>
 
             {/* Charts Section - Grid */}
-            <div className="dashboard-charts-grid">
+            <div className="dashboard-charts-grid stagger-children">
                 {(userRole === 'Admin' || userPermissions.includes('CATALOG')) && (
                     <ChartWidget title={t('dashboard.books_by_dept')}>
                         <div className="chart-container">

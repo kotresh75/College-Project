@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Download, FileText, FileSpreadsheet, Layers, CheckCircle2, Filter } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 
@@ -55,12 +56,12 @@ const ExportModal = ({ onClose, onExport, totalBooks, selectedCount, filteredCou
         </div>
     );
 
-    return (
+    return createPortal(
         <>
             <div style={{
                 position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
                 background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(10px)',
-                display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 2000
+                display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 2200
             }}>
                 <div className="glass-panel bounce-in" style={{ width: '480px', padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', borderRadius: '24px' }}>
 
@@ -216,7 +217,8 @@ const ExportModal = ({ onClose, onExport, totalBooks, selectedCount, filteredCou
                 `}</style>
             </div>
 
-        </>
+        </>,
+        document.body
     );
 };
 

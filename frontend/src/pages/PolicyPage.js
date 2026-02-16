@@ -5,9 +5,14 @@ import ConfirmationModal from '../components/common/ConfirmationModal';
 import GlassSelect from '../components/common/GlassSelect';
 import { useSocket } from '../context/SocketContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useTutorial } from '../context/TutorialContext';
 
 const PolicyPage = () => {
     const { t } = useLanguage();
+    const { setPageContext } = useTutorial();
+    useEffect(() => {
+        setPageContext('policies');
+    }, []);
     const [activeTab, setActiveTab] = useState('borrowing');
     const [activeProfile, setActiveProfile] = useState('student');
     const [policies, setPolicies] = useState(null);

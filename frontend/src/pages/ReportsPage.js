@@ -10,6 +10,7 @@ import InventoryAnalytics from '../components/analytics/InventoryAnalytics';
 import GlassSelect from '../components/common/GlassSelect';
 import { useSocket } from '../context/SocketContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useTutorial } from '../context/TutorialContext';
 
 // Import New Modular Analytics Components
 import ReportExportModal from '../components/reports/ReportExportModal';
@@ -19,6 +20,10 @@ import PdfPreviewModal from '../components/common/PdfPreviewModal';
 
 const SmartReportsPage = () => {
     const { t } = useLanguage();
+    const { setPageContext } = useTutorial();
+    useEffect(() => {
+        setPageContext('reports');
+    }, []);
     const [activeTab, setActiveTab] = useState('daily'); // 'daily' | 'analytics'
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(false);

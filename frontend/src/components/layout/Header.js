@@ -1,15 +1,21 @@
-import React, { useState } from 'react';
-import { Menu, LogOut, User, Sun, Moon, Type } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Menu, LogOut, User, Sun, Moon, Type, ChevronDown, HelpCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { usePreferences } from '../../context/PreferencesContext';
 import { useLanguage } from '../../context/LanguageContext';
 import StatusModal from '../common/StatusModal';
-// Header Component
-const Header = ({ toggleSidebar, user }) => {
+
+const Header = ({ toggleSidebar, user, onHelpClick }) => {
     const { theme, toggleTheme, fontScale, setFontScale, highContrast } = usePreferences();
     const { language, setLanguage, t } = useLanguage();
     const navigate = useNavigate();
     const [showWarning, setShowWarning] = useState(false);
+    const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+    const dropdownRef = useRef(null);
+
+    const userInfo = JSON.parse(localStorage.getItem('user_info') || '{}');
+    const profileIcon = userInfo.profile_icon || null;
+    const userInitial = (user?.name || userInfo.name || 'U').charAt(0).toUpperCase();
 
     // Map numeric scale to labels for display/cycling
     const SCALE_MAP = {
@@ -22,10 +28,8 @@ const Header = ({ toggleSidebar, user }) => {
     // Font size cycler
     const cycleFontSize = () => {
         const scales = [85, 100, 115, 130];
-        // Find closest current scale or default to 100
         let currentIdx = scales.indexOf(fontScale);
-        if (currentIdx === -1) currentIdx = 1; // Default to medium if custom value
-
+        if (currentIdx === -1) currentIdx = 1;
         const nextIndex = (currentIdx + 1) % scales.length;
         setFontScale(scales[nextIndex]);
     };
@@ -37,6 +41,7 @@ const Header = ({ toggleSidebar, user }) => {
     const handleLogout = () => {
         localStorage.removeItem('auth_token');
         localStorage.removeItem('user_info');
+        setShowProfileDropdown(false);
         navigate('/login');
     };
 
@@ -47,6 +52,19 @@ const Header = ({ toggleSidebar, user }) => {
         }
         toggleTheme();
     };
+
+    // Close dropdown on outside click
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+                setShowProfileDropdown(false);
+            }
+        };
+        if (showProfileDropdown) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [showProfileDropdown]);
 
     return (
         <>
@@ -76,6 +94,9 @@ const Header = ({ toggleSidebar, user }) => {
                             <Type size={18} />
                             <span className="control-badge">{SCALE_MAP[fontScale] || 'C'}</span>
                         </button>
+                        <button className="icon-btn-sm" onClick={onHelpClick} title="Help (`)">
+                            <HelpCircle size={18} />
+                        </button>
                         <button
                             className="icon-btn-sm"
                             onClick={handleThemeToggle}
@@ -88,20 +109,63 @@ const Header = ({ toggleSidebar, user }) => {
 
                     <div className="divider-vertical"></div>
 
-                    {/* User Profile */}
-                    <div className="user-profile" onClick={() => navigate('/dashboard/profile')} style={{ cursor: 'pointer' }}>
-                        <div className="user-avatar">
-                            <User size={20} />
-                        </div>
-                        <div className="user-info">
-                            <span className="user-name">{user?.name || 'Admin'}</span>
-                            <span className="user-role">{user?.role || 'Profile'}</span>
-                        </div>
-                    </div>
+                    {/* User Profile with Dropdown */}
+                    <div className="header-profile-wrapper" ref={dropdownRef}>
+                        <button
+                            className="header-profile-trigger"
+                            onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+                        >
+                            <div className="header-avatar">
+                                {profileIcon ? (
+                                    <img src={profileIcon} alt="Profile" className="header-avatar-img" />
+                                ) : (
+                                    <span className="header-avatar-initial">{userInitial}</span>
+                                )}
+                            </div>
+                            <div className="header-user-text">
+                                <span className="user-name">{user?.name || userInfo.name || 'Admin'}</span>
+                                <span className="user-role">{user?.role || userInfo.role || 'Profile'}</span>
+                            </div>
+                            <ChevronDown
+                                size={16}
+                                className={`header-chevron ${showProfileDropdown ? 'rotated' : ''}`}
+                            />
+                        </button>
 
-                    <button className="icon-btn-danger" onClick={handleLogout} title={t('common.logout')}>
-                        <LogOut size={20} />
-                    </button>
+                        {/* Dropdown Menu */}
+                        {showProfileDropdown && (
+                            <div className="header-profile-dropdown animate-fade-in-down">
+                                <div className="dropdown-header">
+                                    <div className="dropdown-avatar">
+                                        {profileIcon ? (
+                                            <img src={profileIcon} alt="Profile" className="dropdown-avatar-img" />
+                                        ) : (
+                                            <span className="dropdown-avatar-initial">{userInitial}</span>
+                                        )}
+                                    </div>
+                                    <div className="dropdown-user-info">
+                                        <span className="dropdown-user-name">{user?.name || userInfo.name}</span>
+                                        <span className="dropdown-user-email">{user?.email || userInfo.email}</span>
+                                    </div>
+                                </div>
+                                <div className="dropdown-divider"></div>
+                                <button
+                                    className="dropdown-item"
+                                    onClick={() => {
+                                        setShowProfileDropdown(false);
+                                        navigate('/dashboard/profile');
+                                    }}
+                                >
+                                    <User size={16} />
+                                    <span>View Profile</span>
+                                </button>
+                                <button className="dropdown-item dropdown-item-danger" onClick={handleLogout}>
+                                    <LogOut size={16} />
+                                    <span>Logout</span>
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </header>
 

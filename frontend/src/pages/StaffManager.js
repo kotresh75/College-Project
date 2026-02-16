@@ -10,9 +10,14 @@ import ConfirmationModal from '../components/common/ConfirmationModal';
 import StatusModal from '../components/common/StatusModal';
 import { useSocket } from '../context/SocketContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useTutorial } from '../context/TutorialContext';
 
 const StaffManager = () => {
     const { t } = useLanguage();
+    const { setPageContext } = useTutorial();
+    useEffect(() => {
+        setPageContext('staff');
+    }, []);
     const socket = useSocket();
     const [staffList, setStaffList] = useState([]);
     const [loading, setLoading] = useState(true);

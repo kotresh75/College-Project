@@ -50,9 +50,72 @@ const createTransporter = (config) => {
     return null;
 };
 
+// Helper to check and increment daily usage
+const checkAndIncrementUsage = () => {
+    return new Promise((resolve) => {
+        db.get("SELECT value FROM system_settings WHERE key = 'email_daily_usage'", (err, row) => {
+            const today = getISTDate().toISOString().split('T')[0];
+            let usage = { count: 0, date: today, limit: 500 };
+
+            if (!err && row && row.value) {
+                try {
+                    const parsed = JSON.parse(row.value);
+                    // Ensure defaults
+                    usage = { ...usage, ...parsed };
+                } catch (e) {
+                    console.error("[Email] Failed to parse usage stats, resetting.");
+                }
+            }
+
+            // Reset if new day
+            if (usage.date !== today) {
+                usage.count = 0;
+                usage.date = today;
+            }
+
+            // Check Limit
+            if (usage.count >= usage.limit) {
+                console.warn(`[Email] Daily limit reached (${usage.count}/${usage.limit}). Email blocked.`);
+                return resolve({ allowed: false, current: usage });
+            }
+
+            // Increment
+            usage.count++;
+
+            // Save back to DB
+            db.run("INSERT OR REPLACE INTO system_settings (key, value, category, data_type, description) VALUES (?, ?, ?, ?, ?)",
+                ['email_daily_usage', JSON.stringify(usage), 'Email', 'json', 'Tracks daily email usage'],
+                (err) => {
+                    if (err) {
+                        console.error("[Email] Failed to update usage stats:", err);
+                        // Fail open or closed? Let's fail open but log it, to avoid blocking critical emails on DB glitch
+                        // But actually, if DB fails, maybe we shouldn't send? 
+                        // Let's resolve allowed: true to prioritize delivery over strict limit in error case
+                        resolve({ allowed: true, current: usage });
+                    } else {
+                        resolve({ allowed: true, current: usage });
+                    }
+                }
+            );
+        });
+    });
+};
+
 // Generic Send Function
-const sendEmail = async ({ to, subject, html, text }) => {
+const sendEmail = async ({ to, subject, html, text, attachments = [] }) => {
     try {
+        // Check Quota
+        const quota = await checkAndIncrementUsage();
+        if (!quota.allowed) {
+            const socketService = require('./socketService');
+            socketService.emit('notification', {
+                type: 'error',
+                title: 'Email Limit Reached',
+                message: `Daily email limit of ${quota.current.limit} has been reached. Email to ${to} was not sent.`
+            });
+            return false;
+        }
+
         // Connectivity Check
         const dns = require('dns').promises;
         try {
@@ -84,10 +147,11 @@ const sendEmail = async ({ to, subject, html, text }) => {
             to,
             subject,
             text,
-            html
+            html,
+            attachments
         });
 
-        console.log(`[Email] Sent to ${to}: ${info.messageId}`);
+        console.log(`[Email] Sent to ${to}: ${info.messageId} (Usage: ${quota.current.count}/${quota.current.limit})`);
         return true;
     } catch (error) {
         console.error(`[Email] Failed to send to ${to}:`, error.message);
@@ -267,11 +331,66 @@ exports.sendOverdueNotice = async (student, loans) => {
     });
 };
 
-exports.sendBroadcast = async (recipient, subject, message) => {
+exports.sendDailySummary = async (admin, stats) => {
+    const events = await getEmailEvents();
+    if (events && events.dailySummary === false) {
+        console.log(`[Email] Daily summary skipped (Disabled in settings)`);
+        return false;
+    }
+
+    const subject = `📊 Daily Library Summary - ${new Date().toLocaleDateString()}`;
+
+    const bodyContent = `
+        <h2 style="color: #2563eb; margin-top: 0;">Daily Library Summary</h2>
+        <p>Dear <strong>${admin.name}</strong>,</p>
+        <p>Here is the status of the library for today:</p>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 20px 0;">
+            <div style="background: white; padding: 15px; border-radius: 6px; border: 1px solid #e5e7eb; text-align: center;">
+                <p style="margin: 0; font-size: 12px; color: #6b7280; text-transform: uppercase;">Total Books</p>
+                <p style="margin: 5px 0 0 0; font-size: 24px; font-weight: bold; color: #1f2937;">${stats.totalBooks}</p>
+            </div>
+            <div style="background: white; padding: 15px; border-radius: 6px; border: 1px solid #e5e7eb; text-align: center;">
+                <p style="margin: 0; font-size: 12px; color: #6b7280; text-transform: uppercase;">Active Loans</p>
+                <p style="margin: 5px 0 0 0; font-size: 24px; font-weight: bold; color: #2563eb;">${stats.activeLoans}</p>
+            </div>
+            <div style="background: white; padding: 15px; border-radius: 6px; border: 1px solid #e5e7eb; text-align: center;">
+                <p style="margin: 0; font-size: 12px; color: #6b7280; text-transform: uppercase;">Overdue Books</p>
+                <p style="margin: 5px 0 0 0; font-size: 24px; font-weight: bold; color: #ef4444;">${stats.overdueBooks}</p>
+            </div>
+            <div style="background: white; padding: 15px; border-radius: 6px; border: 1px solid #e5e7eb; text-align: center;">
+                <p style="margin: 0; font-size: 12px; color: #6b7280; text-transform: uppercase;">Today's Issues</p>
+                <p style="margin: 5px 0 0 0; font-size: 24px; font-weight: bold; color: #10b981;">${stats.issuedToday}</p>
+            </div>
+        </div>
+
+        <p style="text-align: center; margin-top: 20px;">
+            <a href="http://localhost:3000" style="background-color: #2563eb; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; font-weight: bold;">Open Dashboard</a>
+        </p>
+    `;
+
+    return sendEmail({
+        to: admin.email,
+        subject,
+        html: baseTemplate(bodyContent)
+    });
+};
+
+exports.sendBroadcast = async (recipient, subject, message, attachment = null) => {
     const events = await getEmailEvents();
     if (events && events.broadcastMessages === false) {
         console.log(`[Email] Broadcast skipped (Disabled in settings)`);
         return false;
+    }
+
+    let isImage = false;
+    // Check if attachment is an image
+    if (attachment && attachment.filename) {
+        const ext = attachment.filename.split('.').pop().toLowerCase();
+        if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) {
+            isImage = true;
+            attachment.cid = 'broadcast-image-' + Date.now(); // Unique CID
+        }
     }
 
     // recipient: { name, email }
@@ -281,12 +400,15 @@ exports.sendBroadcast = async (recipient, subject, message) => {
         <div style="font-size: 16px; line-height: 1.6; margin: 20px 0;">
             ${message.replace(/\n/g, '<br>')}
         </div>
+        ${isImage ? `<div style="text-align: center; margin-top: 20px;"><img src="cid:${attachment.cid}" style="max-width: 100%; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" alt="Attached Image" /></div>` : ''}
+        ${attachment && !isImage ? `<p style="margin-top: 20px; font-size: 14px; color: #6b7280;">📎 Attachment: <strong>${attachment.filename}</strong></p>` : ''}
     `;
 
     return sendEmail({
         to: recipient.email,
         subject: `📢 ${subject}`,
-        html: baseTemplate(bodyContent)
+        html: baseTemplate(bodyContent),
+        attachments: attachment ? [attachment] : []
     });
 };
 
@@ -294,6 +416,7 @@ module.exports = {
     sendTransactionReceipt: exports.sendTransactionReceipt,
     sendFineReceipt: exports.sendFineReceipt,
     sendOverdueNotice: exports.sendOverdueNotice,
+    sendDailySummary: exports.sendDailySummary,
     sendBroadcast: exports.sendBroadcast,
     sendEmail // Export generic too just in case
 };

@@ -5,9 +5,32 @@ const { v4: uuidv4 } = require('uuid');
 const { getISTDate, getSQLiteISTTimestamp, getISTISOWithOffset } = require('../utils/dateUtils');
 
 // Scheduled Task: Check Overdue Books (Daily at 8:00 AM)
-cron.schedule('0 8 * * *', async () => {
-    console.log('[Cron] Running Daily Overdue Check...');
+cron.schedule('0 8 * * *', () => {
+    console.log('[Cron] Triggered Daily Overdue Check Schedule...');
+    checkOverdueNotices();
+});
 
+const checkOverdueNotices = () => {
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+
+    db.get("SELECT value FROM system_settings WHERE key = 'last_overdue_notice_sent'", (err, row) => {
+        if (err) {
+            console.error('[Cron] Error checking overdue notice status:', err);
+            return;
+        }
+
+        const lastSent = row ? row.value : null;
+
+        if (lastSent !== today) {
+            console.log('[Cron] Starting Overdue Notice Process...');
+            runOverdueCheck(today);
+        } else {
+            console.log('[Cron] Overdue notices already sent today. Skipping.');
+        }
+    });
+};
+
+const runOverdueCheck = async (todayMarker) => {
     try {
         // 1. Get Active Overdue Loans
         // Group by Student to send one email per student
@@ -25,6 +48,9 @@ cron.schedule('0 8 * * *', async () => {
                 console.error('[Cron] Error fetching overdue loans:', err);
                 return;
             }
+
+            // MARK AS SENT regardless of finding books, to avoid repeated checks on empty days
+            db.run("INSERT OR REPLACE INTO system_settings (key, value) VALUES ('last_overdue_notice_sent', ?)", [todayMarker]);
 
             if (rows.length === 0) {
                 console.log('[Cron] No overdue books found today.');
@@ -82,7 +108,7 @@ cron.schedule('0 8 * * *', async () => {
     } catch (error) {
         console.error('[Cron] Unexpected error:', error);
     }
-});
+};
 
 // Scheduled Task: Cloud Backup (Daily at Midnight)
 cron.schedule('0 0 * * *', async () => {
@@ -120,5 +146,9 @@ cron.schedule('0 0 * * *', async () => {
 });
 
 module.exports = {
-    init: () => console.log('[Cron] Service Initialized')
+    init: () => {
+        console.log('[Cron] Service Initialized');
+        // Check for overdue notices on startup (Run once per day)
+        checkOverdueNotices();
+    }
 };

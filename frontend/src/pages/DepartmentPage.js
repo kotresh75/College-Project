@@ -6,8 +6,13 @@ import SmartDepartmentTable from '../components/departments/SmartDepartmentTable
 import ConfirmationModal from '../components/common/ConfirmationModal';
 import StatusModal from '../components/common/StatusModal';
 import { useSocket } from '../context/SocketContext';
+import { useTutorial } from '../context/TutorialContext';
 
 const DepartmentPage = () => {
+    const { setPageContext } = useTutorial();
+    useEffect(() => {
+        setPageContext('departments');
+    }, []);
     const [departments, setDepartments] = useState([]);
     const [search, setSearch] = useState('');
     const [showModal, setShowModal] = useState(false);

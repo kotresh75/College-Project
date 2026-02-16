@@ -9,6 +9,7 @@ const GlassSelect = ({
     placeholder,
     icon: Icon,
     className,
+    style, // Add style prop
     showSearch = true,
     small = false
 }) => {
@@ -143,7 +144,7 @@ const GlassSelect = ({
                 className={`glass-select-container ${className || ''} ${small ? 'small' : ''}`}
                 ref={triggerRef}
                 onClick={toggleOpen}
-                style={{ height: small ? '32px' : undefined }}
+                style={{ height: small ? '32px' : undefined, ...style }}
             >
                 <div className={`glass-select-trigger glass-input ${Icon ? 'with-icon' : ''}`} style={{ padding: small ? '4px 8px' : undefined, height: '100%', fontSize: small ? '0.85rem' : undefined }}>
                     {Icon && <Icon className="glass-select-icon" size={small ? 14 : 18} />}

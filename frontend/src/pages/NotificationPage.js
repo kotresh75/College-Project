@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useSocket } from '../context/SocketContext';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -15,9 +16,23 @@ const NotificationPage = () => {
     const [targetStudents, setTargetStudents] = useState([]); // Array for multi-select
     const [subject, setSubject] = useState('');
     const [message, setMessage] = useState('');
+    const [file, setFile] = useState(null);
+    const [emailUsage, setEmailUsage] = useState(null);
 
     const [loading, setLoading] = useState(false);
     const [isBroadcastEnabled, setIsBroadcastEnabled] = useState(true);
+
+    const fetchEmailUsage = async () => {
+        try {
+            const res = await fetch('http://localhost:17221/api/settings/email/usage');
+            if (res.ok) {
+                const data = await res.json();
+                setEmailUsage(data); // { count, limit, date }
+            }
+        } catch (err) {
+            console.error("Failed to fetch email usage:", err);
+        }
+    };
 
     // Fetch Settings to check if Broadcast is enabled
     useEffect(() => {
@@ -37,6 +52,7 @@ const NotificationPage = () => {
             }
         };
         fetchSettings();
+        fetchEmailUsage();
     }, []);
 
     // Status Modal State
@@ -108,17 +124,21 @@ const NotificationPage = () => {
             const token = localStorage.getItem('auth_token');
             if (!token) throw new Error(t('broadcast.status.auth_err'));
 
+            const formData = new FormData();
+            formData.append('recipient_group', backendGroup);
+            formData.append('subject', subject);
+            formData.append('message', message);
+            if (file) {
+                formData.append('attachment', file);
+            }
+
             const response = await fetch('http://localhost:17221/api/admins/broadcast', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
+                    // Content-Type not set to let browser set boundary for multipart
                 },
-                body: JSON.stringify({
-                    recipient_group: backendGroup,
-                    subject,
-                    message // HTML content from editor
-                })
+                body: formData
             });
 
             const data = await response.json();
@@ -131,6 +151,7 @@ const NotificationPage = () => {
             setStatusModal({ isOpen: true, type: 'success', title: t('broadcast.status.sent'), message: `${t('broadcast.status.success_msg')} ${data.recipientCount || t('broadcast.status.recipients')}` });
             setSubject('');
             setMessage('');
+            setFile(null);
             setTargetStudents([]);
             fetchHistory(); // Refresh history
         } catch (err) {
@@ -191,6 +212,32 @@ const NotificationPage = () => {
                             <Send size={20} /> {t('broadcast.compose.title')}
                         </h2>
                     </div>
+
+                    {/* Email Usage Indicator */}
+                    {emailUsage && (
+                        <div style={{ marginBottom: '15px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '5px' }}>
+                                <span>Daily Email Quota</span>
+                                <span style={{ fontWeight: 'bold', color: emailUsage.count >= emailUsage.limit ? '#EF4444' : 'inherit' }}>
+                                    {emailUsage.count} / {emailUsage.limit}
+                                </span>
+                            </div>
+                            <div style={{ width: '100%', height: '6px', background: 'rgba(255,255,255,0.1)', borderRadius: '3px', overflow: 'hidden' }}>
+                                <div style={{
+                                    width: `${Math.min((emailUsage.count / emailUsage.limit) * 100, 100)}%`,
+                                    height: '100%',
+                                    background: emailUsage.count >= emailUsage.limit ? '#EF4444' : '#48bb78',
+                                    borderRadius: '3px',
+                                    transition: 'width 0.3s ease'
+                                }}></div>
+                            </div>
+                            {emailUsage.count >= emailUsage.limit && (
+                                <div style={{ fontSize: '0.8rem', color: '#EF4444', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    <AlertCircle size={12} /> Limit reached. Emails will not be sent.
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     {!isBroadcastEnabled && (
                         <div style={{
@@ -315,6 +362,64 @@ const NotificationPage = () => {
                             </div>
                         </div>
 
+                        {/* Attachment */}
+                        <div className="form-group">
+                            <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>{t('broadcast.compose.attachment') || "Attachment (Optional)"}</label>
+                            <div className="input-group" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '10px' }}>
+                                <input
+                                    type="file"
+                                    id="file-upload"
+                                    style={{ display: 'none' }}
+                                    onChange={(e) => {
+                                        const selectedFile = e.target.files[0];
+                                        if (selectedFile) {
+                                            if (selectedFile.size > 10 * 1024 * 1024) { // 10MB Limit
+                                                setStatusModal({
+                                                    isOpen: true,
+                                                    type: 'error',
+                                                    title: 'File Too Large',
+                                                    message: 'The selected file exceeds the 10MB limit. Please choose a smaller file.'
+                                                });
+                                                e.target.value = null; // Reset input
+                                                return;
+                                            }
+                                            setFile(selectedFile);
+                                        }
+                                    }}
+                                />
+                                <label
+                                    htmlFor="file-upload"
+                                    className="secondary-glass-btn"
+                                    style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '8px',
+                                        cursor: 'pointer',
+                                        padding: '8px 16px',
+                                        fontSize: '0.9rem'
+                                    }}
+                                >
+                                    <FileText size={16} />
+                                    {file ? 'Change File' : 'Choose File'}
+                                </label>
+                                {file && (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                                        <span>{file.name}</span>
+                                        <div style={{ fontSize: '0.8rem', opacity: 0.7 }}>
+                                            ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setFile(null)}
+                                            style={{ background: 'none', border: 'none', color: '#ff6b6b', cursor: 'pointer', padding: 0 }}
+                                        >
+                                            <X size={16} />
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
                         {/* Actions */}
                         <div style={{ display: 'flex', gap: '15px', marginTop: 'auto' }}>
                             <button
@@ -335,7 +440,7 @@ const NotificationPage = () => {
                                 {loading ? <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" /> : <Send size={18} />}
                                 {loading ? t('broadcast.compose.sending') : t('broadcast.compose.send')}
                             </button>
-                            <button type="button" className="icon-btn" onClick={() => { setSubject(''); setMessage(''); }} style={{ color: '#ff6b6b', borderColor: '#ff6b6b' }}>
+                            <button type="button" className="icon-btn" onClick={() => { setSubject(''); setMessage(''); setFile(null); }} style={{ color: '#ff6b6b', borderColor: '#ff6b6b' }}>
                                 <Trash2 size={18} /> {t('broadcast.compose.clear')}
                             </button>
                         </div>
@@ -419,7 +524,7 @@ const NotificationPage = () => {
             />
 
             {/* Detail View Modal */}
-            {selectedHistoryItem && (
+            {selectedHistoryItem && createPortal(
                 <div style={{
                     position: 'fixed',
                     top: 0,
@@ -438,11 +543,14 @@ const NotificationPage = () => {
                         className="glass-panel"
                         style={{
                             width: '90%',
-                            maxWidth: '600px',
+                            maxWidth: '800px', // Increased from 600px
                             maxHeight: '85vh',
                             overflowY: 'auto',
                             position: 'relative',
-                            animation: 'scaleIn 0.3s ease'
+                            animation: 'scaleIn 0.3s ease',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            zIndex: 10001 // Ensure it's above overlay backdrop
                         }}
                         onClick={e => e.stopPropagation()}
                     >
@@ -455,11 +563,11 @@ const NotificationPage = () => {
                                 background: 'transparent',
                                 border: 'none',
                                 color: 'var(--text-secondary)',
-                                cursor: 'pointer'
+                                cursor: 'pointer',
+                                zIndex: 10
                             }}
                         >
-                            <Trash2 style={{ opacity: 0 }} size={0} /> {/* Spacer hack or just use X */}
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                            <X size={20} />
                         </button>
 
                         <h2 style={{ paddingRight: '40px', marginBottom: '5px' }}>{selectedHistoryItem.subject}</h2>
@@ -482,18 +590,25 @@ const NotificationPage = () => {
                             </span>
                         </div>
 
-                        <div style={{
-                            background: 'rgba(255,255,255,0.05)',
-                            padding: '20px',
-                            borderRadius: '12px',
-                            border: '1px solid var(--glass-border)',
-                            lineHeight: '1.6',
-                            color: 'var(--text-main)'
-                        }}>
+                        <div
+                            className="broadcast-message-content"
+                            style={{
+                                background: 'rgba(255,255,255,0.05)',
+                                padding: '20px',
+                                borderRadius: '12px',
+                                border: '1px solid var(--glass-border)',
+                                lineHeight: '1.6',
+                                color: 'var(--text-main)',
+                                overflowWrap: 'anywhere', // Force wrap at any point if necessary
+                                wordBreak: 'break-word',
+                                whiteSpace: 'pre-wrap', // Preserve newlines but wrap text
+                                maxWidth: '100%'
+                            }}>
                             <div dangerouslySetInnerHTML={{ __html: selectedHistoryItem.message || selectedHistoryItem.body || `<div style="text-align:center; color: var(--text-secondary); padding: 20px;"><i>Content not available for this message.</i></div>` }} />
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </div >
     );

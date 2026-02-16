@@ -95,3 +95,37 @@ code {
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background-color: #757b80;
 }
+
+/* Broadcast Message Content */
+.broadcast-message-content {
+  overflow-x: auto;
+  /* Fallback scroll */
+  max-width: 100%;
+  display: block;
+}
+
+.broadcast-message-content img,
+.broadcast-message-content video,
+.broadcast-message-content iframe {
+  max-width: 100% !important;
+  height: auto !important;
+  border-radius: 8px;
+  display: block;
+  margin: 10px 0;
+}
+
+.broadcast-message-content table {
+  width: 100% !important;
+  max-width: 100% !important;
+  display: block;
+  overflow-x: auto;
+  border-collapse: collapse;
+}
+
+.broadcast-message-content pre,
+.broadcast-message-content code {
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-width: 100%;
+  overflow-x: auto;
+}

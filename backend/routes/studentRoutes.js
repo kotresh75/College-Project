@@ -14,6 +14,7 @@ router.post('/promote', studentController.promoteStudents);
 router.post('/promotion-scan', studentController.scanForPromotion);
 router.post('/photo/upload', studentController.uploadPhoto);
 router.get('/defaulters', studentController.getDefaulters);
+router.get('/id-cards', studentController.getStudentsForIdCards);
 router.put('/:id', studentController.updateStudent);
 router.delete('/:id', studentController.deleteStudent);
 

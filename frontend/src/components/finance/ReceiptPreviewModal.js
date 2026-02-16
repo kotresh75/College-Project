@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Download, FileText, Minimize2, Maximize2, Printer } from 'lucide-react';
 import { generateReceiptContent, generatePdf } from '../../utils/SmartPrinterHandler';
 
@@ -170,8 +171,8 @@ const ReceiptPreviewModal = ({ isOpen, onClose, transaction }) => {
     const previewScale = zoom / 100;
     const previewWidth = paperSize === '58mm' ? '58mm' : paperSize === '80mm' ? '80mm' : '340px';
 
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" style={{ animation: 'fadeIn 0.3s ease' }}>
+    return createPortal(
+        <div className="fixed inset-0 z-[2200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" style={{ animation: 'fadeIn 0.3s ease', zIndex: 2200 }}>
             <div style={{
                 background: 'var(--surface-primary, #1a1a2e)',
                 borderRadius: '20px',
@@ -382,7 +383,8 @@ const ReceiptPreviewModal = ({ isOpen, onClose, transaction }) => {
                 @keyframes slideUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
                 @keyframes spin { to { transform: rotate(360deg); } }
             `}</style>
-        </div>
+        </div>,
+        document.body
     );
 };
 

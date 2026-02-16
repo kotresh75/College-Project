@@ -17,12 +17,18 @@ import PromotionModal from '../components/students/PromotionModal';
 import SmartStudentTable from '../components/students/SmartStudentTable';
 import StatusModal from '../components/common/StatusModal';
 import { useLanguage } from '../context/LanguageContext';
+import { useTutorial } from '../context/TutorialContext';
 import PdfPreviewModal from '../components/common/PdfPreviewModal';
 
 const StudentManager = () => {
     const { t } = useLanguage();
+    const { setPageContext } = useTutorial();
     const socket = useSocket();
     const [students, setStudents] = useState([]);
+
+    useEffect(() => {
+        setPageContext('students');
+    }, []);
     const [departments, setDepartments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
@@ -186,26 +192,28 @@ const StudentManager = () => {
                     headers: { 'Content-Type': 'application/json' },
                     body
                 });
+
+                const result = await res.json();
+
                 if (res.ok) {
                     setIsDeleting(false); // Stop spinner
                     setConfirmConfig({ show: false, action: null, data: null }); // Close Confirm Modal manually
                     fetchStudents();
                     showSuccess("Deleted", "Student(s) deleted successfully.");
-                    setTimeout(() => window.location.reload(), 1500); // Force refresh
+                    // setTimeout(() => window.location.reload(), 1500); // Force refresh - REMOVED to avoid jarring experience
                     return;
                 } else {
                     setIsDeleting(false); // Stop spinner
-                    // Error will be shown by keeping modal open or showing alert? 
-                    // Better to close confirm and show error alert
                     setConfirmConfig({ show: false, action: null, data: null });
-                    setTimeout(() => showError("Error", "Failed to delete. (ERR_STU_DEL)"), 100);
+                    // Show specific error from backend (e.g., "Cannot delete: Student has active loans")
+                    setTimeout(() => showError("Deletion Failed", (result.error || "Failed to delete student") + " (ERR_STU_DEL)"), 100);
                     return;
                 }
             } catch (e) {
                 console.error(e);
                 setIsDeleting(false);
                 setConfirmConfig({ show: false, action: null, data: null });
-                setTimeout(() => showError("Error", "Network Error (ERR_NET_STU_DEL)"), 100);
+                setTimeout(() => showError("Network Error", "Failed to connect to server. (ERR_NET_STU_DEL)"), 100);
                 return;
             }
 

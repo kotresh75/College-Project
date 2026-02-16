@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, UploadCloud, AlertCircle, FileSpreadsheet } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import GlassSelect from './GlassSelect';
@@ -259,11 +260,11 @@ const BulkImportModal = ({
     const hasErrors = Object.keys(errors).length > 0;
     const totalErrorCount = Object.values(errors).reduce((acc, curr) => acc + curr.length, 0);
 
-    return (
+    return createPortal(
         <div style={{
             position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
             background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(5px)',
-            display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 2000
+            display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 2200
         }}>
             <div className="glass-panel bounce-in" style={{ width: '95%', maxWidth: '1300px', height: '85vh', padding: 0, overflow: 'hidden', border: '1px solid var(--glass-border)', display: 'flex', flexDirection: 'column' }}>
                 {/* Header */}
@@ -341,7 +342,7 @@ const BulkImportModal = ({
                             {/* Table */}
                             <div style={{ flex: 1, overflow: 'auto', border: '1px solid var(--glass-border)', borderRadius: '8px' }}>
                                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
-                                    <thead style={{ position: 'sticky', top: 0, zIndex: 10, background: 'var(--bg-color)' }}>
+                                    <thead style={{ position: 'sticky', top: 0, zIndex: 9999, background: 'var(--surface-primary, #ffffff)', boxShadow: '0 2px 5px rgba(0,0,0,0.05)', transform: 'translateZ(0)' }}>
                                         <tr style={{ background: 'rgba(255,255,255,0.05)', textAlign: 'left', borderBottom: '1px solid var(--glass-border)' }}>
                                             {columns.map(col => (
                                                 <th key={col.key} style={{ padding: '12px 10px', width: col.width || 'auto' }}>
@@ -368,6 +369,7 @@ const BulkImportModal = ({
                                                                             value={row[col.key]}
                                                                             onChange={(val) => handleCellChange(row.id, col.key, val)}
                                                                             className={cellError ? 'error-border' : ''}
+                                                                            style={{ position: 'relative', zIndex: 0 }}
                                                                         />
                                                                         {cellError && <span style={{ color: '#fc8181', fontSize: '0.7rem' }}>{cellError}</span>}
                                                                     </div>
@@ -447,7 +449,8 @@ const BulkImportModal = ({
                 confirmText="OK"
                 cancelText={null}
             />
-        </div>
+        </div>,
+        document.body
     );
 };
 

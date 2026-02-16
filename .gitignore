@@ -18,11 +18,15 @@ out/
 .env.development.local
 .env.test.local
 .env.production.local
+.env.production
 
 # Logs
+logs
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+lerna-debug.log*
 
 # Database
 DB/
@@ -32,6 +36,8 @@ DB/
 
 # Uploads
 Uploads/
+backend/uploads/*
+!backend/uploads/.gitkeep
 
 # IDEs
 .vscode/
@@ -43,6 +49,10 @@ electron/build/
 
 # Build Artifacts
 Final_export/
+
+# Temp
+tmp/
+temp/
 
 # Windows System Files
 Thumbs.db

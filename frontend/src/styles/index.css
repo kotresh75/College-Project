@@ -26,6 +26,8 @@
 @import './components/cards.css';
 @import './components/modals.css';
 @import './components/tables.css';
+@import './components/logo-particles.css';
+@import './components/interactive-bg.css';
 
 /* ===================
    UTILITIES

@@ -1,9 +1,17 @@
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { formatDate } from '../../utils/dateUtils';
 import { X, Activity, User, Mail, Phone, Briefcase, Calendar, Clock, Lock } from 'lucide-react';
 
 const StaffDetailModal = ({ staff, onClose }) => {
     const [logs, setLogs] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+        return () => setMounted(false);
+    }, []);
 
     useEffect(() => {
         if (staff) {
@@ -16,123 +24,121 @@ const StaffDetailModal = ({ staff, onClose }) => {
         }
     }, [staff]);
 
-    return (
-        <div className="modal-overlay" style={{
-            position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
-            background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(5px)',
-            display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1100
+    if (!mounted) return null;
+
+    return createPortal(
+        <div className="fixed inset-0 z-[1400] flex items-center justify-center animate-fade-in p-4" style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(5px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1400
         }}>
-            <div className="glass-panel bounce-in" style={{ width: '95%', maxWidth: '800px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', padding: 0, background: 'var(--bg-color)', border: '1px solid var(--glass-border)' }}>
+            <div className="glass-panel w-full max-w-4xl overflow-hidden animate-scale-in flex flex-col max-h-[90vh]"
+                onClick={e => e.stopPropagation()}
+                style={{
+                    padding: 0,
+                    border: '1px solid var(--glass-border)',
+                    background: 'var(--glass-bg)',
+                    boxShadow: 'var(--glass-shadow)',
+                    color: 'var(--text-main)',
+                    borderRadius: 'var(--radius-lg)'
+                }}
+            >
 
                 {/* Header with Profile Summarry */}
-                <div style={{ padding: '20px', borderBottom: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
-                        <div style={{
-                            width: '60px', height: '60px', borderRadius: '50%',
+                <div className="p-5 border-b flex justify-between items-start" style={{ borderColor: 'var(--glass-border)', background: 'rgba(255,255,255,0.05)' }}>
+                    <div className="flex items-center gap-5">
+                        <div className="w-16 h-16 rounded-full flex items-center justify-center border" style={{
                             background: 'linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            border: '1px solid var(--glass-border)'
+                            borderColor: 'var(--glass-border)'
                         }}>
-                            <User size={30} color="var(--text-main)" />
+                            <User size={30} style={{ color: 'var(--text-main)' }} />
                         </div>
                         <div>
-                            <h2 style={{ fontSize: '1.4rem', fontWeight: 'bold', margin: '0 0 5px 0' }}>{staff.name}</h2>
-                            <div style={{ display: 'flex', gap: 15, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-                                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Briefcase size={14} /> {staff.designation}</span>
-                                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Mail size={14} /> {staff.email}</span>
+                            <h2 className="text-2xl font-bold mb-1" style={{ color: 'var(--text-main)' }}>{staff.name}</h2>
+                            <div className="flex gap-4 text-sm opacity-80" style={{ color: 'var(--text-secondary)' }}>
+                                <span className="flex items-center gap-2"><Briefcase size={14} /> {staff.designation}</span>
+                                <span className="flex items-center gap-2"><Mail size={14} /> {staff.email}</span>
                             </div>
                         </div>
                     </div>
-                    <button onClick={onClose} className="icon-btn-ghost"><X size={20} /></button>
+                    <button onClick={onClose} className="transition-colors p-1 rounded-full hover:bg-black/5 dark:hover:bg-white/10" style={{ color: 'var(--text-secondary)' }}>
+                        <X size={20} />
+                    </button>
                 </div>
 
-                <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+                <div className="flex-1 flex overflow-hidden">
 
                     {/* Sidebar Profile Details */}
-                    <div style={{ width: '250px', padding: '20px', borderRight: '1px solid var(--glass-border)', background: 'rgba(0,0,0,0.1)' }}>
-                        <h3 style={{ fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--text-secondary)', marginBottom: '15px' }}>Profile Details</h3>
+                    <div className="w-64 p-5 border-r" style={{ borderColor: 'var(--glass-border)', background: 'rgba(0,0,0,0.1)' }}>
+                        <h3 className="text-xs uppercase tracking-wider font-semibold mb-4 opacity-70" style={{ color: 'var(--text-secondary)' }}>Profile Details</h3>
 
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 15, fontSize: '0.9rem' }}>
+                        <div className="space-y-4 text-sm">
                             <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>Phone</label>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <Phone size={14} color="var(--primary-color)" /> {staff.phone || 'N/A'}
+                                <label className="block text-xs opacity-70 mb-1" style={{ color: 'var(--text-secondary)' }}>Phone</label>
+                                <div className="flex items-center gap-2 font-medium">
+                                    <Phone size={14} className="text-green-500" /> {staff.phone || 'N/A'}
                                 </div>
                             </div>
                             <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>Status</label>
-                                <span style={{
-                                    padding: '2px 8px', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 600,
-                                    background: staff.status === 'Active' ? 'rgba(72, 187, 120, 0.2)' : 'rgba(252, 129, 129, 0.2)',
-                                    color: staff.status === 'Active' ? '#48bb78' : '#fc8181'
-                                }}>
+                                <label className="block text-xs opacity-70 mb-1" style={{ color: 'var(--text-secondary)' }}>Status</label>
+                                <span className={`px-2 py-0.5 rounded text-xs font-semibold ${staff.status === 'Active' ? 'bg-green-500/20 text-green-500' : 'bg-red-500/20 text-red-500'}`}>
                                     {staff.status}
                                 </span>
                             </div>
                             <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>Last Login</label>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <Clock size={14} color="var(--primary-color)" />
+                                <label className="block text-xs opacity-70 mb-1" style={{ color: 'var(--text-secondary)' }}>Last Login</label>
+                                <div className="flex items-center gap-2">
+                                    <Clock size={14} className="text-blue-500" />
                                     {staff.last_login ? formatDate(staff.last_login, true) : 'Never'}
                                 </div>
                             </div>
                             <div>
-                                <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>Joined</label>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <Calendar size={14} color="var(--primary-color)" />
+                                <label className="block text-xs opacity-70 mb-1" style={{ color: 'var(--text-secondary)' }}>Joined</label>
+                                <div className="flex items-center gap-2">
+                                    <Calendar size={14} className="text-purple-500" />
                                     {formatDate(staff.created_at)}
                                 </div>
                             </div>
                         </div>
 
-                        <div style={{ marginTop: '20px', paddingTop: '15px', borderTop: '1px solid var(--glass-border)' }}>
-                            <label style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Permissions</label>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                        <div className="mt-6 pt-4 border-t" style={{ borderColor: 'var(--glass-border)' }}>
+                            <label className="block text-xs opacity-70 mb-2" style={{ color: 'var(--text-secondary)' }}>Permissions</label>
+                            <div className="flex flex-wrap gap-1.5">
                                 {(staff.access_permissions || []).map(p => (
-                                    <span key={p} style={{
-                                        fontSize: '0.7rem', padding: '3px 6px', borderRadius: '4px',
-                                        background: 'rgba(255,255,255,0.05)', border: '1px solid var(--glass-border)'
-                                    }}>
+                                    <span key={p} className="text-xs px-2 py-1 rounded border bg-white/5" style={{ borderColor: 'var(--glass-border)' }}>
                                         {p}
                                     </span>
                                 ))}
-                                {(!staff.access_permissions || staff.access_permissions.length === 0) && <span style={{ fontSize: '0.8rem', fontStyle: 'italic', color: 'var(--text-secondary)' }}>None</span>}
+                                {(!staff.access_permissions || staff.access_permissions.length === 0) && <span className="text-xs italic opacity-60">None</span>}
                             </div>
                         </div>
                     </div>
 
                     {/* Main Content: Logs Timeline */}
-                    <div style={{ flex: 1, padding: '20px', overflowY: 'auto' }}>
-                        <h3 style={{ fontSize: '1.1rem', fontWeight: 'bold', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: 10 }}>
-                            <Activity size={20} color="#f6e05e" /> Activity Log
+                    <div className="flex-1 p-6 overflow-y-auto">
+                        <h3 className="text-lg font-bold mb-6 flex items-center gap-2">
+                            <Activity size={20} className="text-yellow-400" /> Activity Log
                         </h3>
 
                         {loading ? (
-                            <div style={{ padding: '40px', textAlign: 'center' }}><div className="spinner-lg"></div></div>
+                            <div className="p-10 text-center"><div className="spinner-lg"></div></div>
                         ) : logs.length === 0 ? (
-                            <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+                            <div className="p-10 text-center italic opacity-60" style={{ color: 'var(--text-secondary)' }}>
                                 No activity recorded yet.
                             </div>
                         ) : (
-                            <div className="timeline" style={{ position: 'relative', paddingLeft: '20px' }}>
-                                {/* Timeline Line (CSS simulated) */}
-                                <div style={{ position: 'absolute', left: '6px', top: '10px', bottom: '10px', width: '2px', background: 'var(--glass-border)' }}></div>
-
+                            <div className="relative pl-6 border-l-2 space-y-6" style={{ borderColor: 'var(--glass-border)' }}>
                                 {logs.map(log => (
-                                    <div key={log.id} style={{ position: 'relative', marginBottom: '20px', paddingLeft: '20px' }}>
+                                    <div key={log.id} className="relative pl-4">
                                         {/* Dot */}
-                                        <div style={{
-                                            position: 'absolute', left: '-5px', top: '4px', width: '12px', height: '12px',
-                                            borderRadius: '50%', background: 'var(--primary-color)', border: '2px solid var(--bg-color)'
-                                        }}></div>
+                                        <div className="absolute -left-[29px] top-1.5 w-3 h-3 rounded-full bg-blue-500 ring-4 ring-[var(--bg-color)]"></div>
 
                                         {/* Content */}
-                                        <div style={{ fontSize: '0.9rem', marginBottom: '4px' }}>
-                                            <span style={{ fontWeight: 600 }}>{log.action_type}</span> - {log.description}
+                                        <div className="text-sm mb-1">
+                                            <span className="font-semibold">{log.action_type}</span> - {log.description}
                                         </div>
-                                        <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'flex', gap: 10 }}>
+                                        <div className="text-xs flex gap-3 opacity-60" style={{ color: 'var(--text-secondary)' }}>
                                             <span>{formatDate(log.timestamp, true)}</span>
-                                            <span style={{ background: 'rgba(255,255,255,0.05)', padding: '0 4px', borderRadius: '3px' }}>{log.module}</span>
+                                            <span className="px-1.5 rounded bg-white/10">{log.module}</span>
                                         </div>
                                     </div>
                                 ))}
@@ -142,12 +148,13 @@ const StaffDetailModal = ({ staff, onClose }) => {
 
                 </div>
 
-                <div style={{ padding: '15px', borderTop: '1px solid var(--glass-border)', display: 'flex', justifyContent: 'flex-end', background: 'rgba(255,255,255,0.02)' }}>
-                    <button onClick={onClose} className="primary-glass-btn" style={{ padding: '8px 20px' }}>Close</button>
+                <div className="p-4 border-t flex justify-end" style={{ borderColor: 'var(--glass-border)', background: 'rgba(255,255,255,0.02)' }}>
+                    <button onClick={onClose} className="primary-glass-btn px-6 py-2 rounded-lg text-sm font-medium">Close</button>
                 </div>
 
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
 

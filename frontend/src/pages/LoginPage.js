@@ -5,6 +5,8 @@ import { Mail, Lock, Eye, EyeOff, LogIn, Sun, Moon, Type, Globe, ArrowLeft } fro
 import { usePreferences } from '../context/PreferencesContext';
 import { useLanguage } from '../context/LanguageContext';
 import logo from '../assets/logo.png';
+import LogoParticles from '../components/common/LogoParticles';
+import InteractiveBG from '../components/common/InteractiveBG';
 
 import StatusModal from '../components/common/StatusModal';
 
@@ -95,7 +97,7 @@ const LoginPage = () => {
 
     return (
         <div className="login-container">
-            <div className="gradient-bg"></div>
+            <InteractiveBG />
 
             {/* Top Right Controls */}
             <div className="login-controls">
@@ -125,11 +127,12 @@ const LoginPage = () => {
 
             <div className="login-card glass-panel bounce-in">
 
-                <div className="login-header text-center flex flex-col items-center justify-center">
-                    <img src={logo} alt="Logo" className="login-logo" />
-                    <h2 className="login-title">{t('auth.welcome_back')}</h2>
-                    <p className="login-subtitle">{t('auth.sign_in_subtitle')}</p>
-                </div>
+                <LogoParticles
+                    logoSrc={logo}
+                    title={t('auth.welcome_back')}
+                    subtitle={t('auth.sign_in_subtitle')}
+                    compact
+                />
 
                 <form onSubmit={handleSubmit} className="login-form">
 

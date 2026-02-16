@@ -4,6 +4,7 @@
  */
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
+import appLogo from '../assets/logo.png';
 
 const getPrintStyles = (paperSize) => {
     const baseStyles = `
@@ -686,7 +687,7 @@ export const generatePrintContent = (title, data, columns, settings = {}) => {
         <body>
             <div class="print-container">
                 <div class="print-header">
-                    <img src="/College_Logo.png" alt="Logo" class="print-logo" onerror="this.style.display='none'" />
+                    <img src="${appLogo}" alt="Logo" class="print-logo" onerror="this.style.display='none'" />
                     <div class="header-text">
                         <div class="org-name">${orgName}</div>
                         <div class="doc-title">${title}</div>
@@ -757,7 +758,7 @@ const generateBrowserPdf = async (htmlContent, options = {}) => {
         // --- Step 1: Pre-load logo as Base64 ---
         let logoBase64 = null;
         try {
-            logoBase64 = await imageToBase64('/College_Logo.png');
+            logoBase64 = await imageToBase64(appLogo);
             console.log('Logo converted to base64 successfully');
         } catch (e) {
             console.warn('Logo base64 conversion failed:', e.message);
@@ -777,8 +778,10 @@ const generateBrowserPdf = async (htmlContent, options = {}) => {
         let processedContent = htmlContent;
         if (logoBase64) {
             // Replace all occurrences of the logo path with base64
-            processedContent = processedContent.replace(/src="\/College_Logo\.png"/g, `src="${logoBase64}"`);
-            processedContent = processedContent.replace(/src='\/College_Logo\.png'/g, `src='${logoBase64}'`);
+            // Replace the logo src (which is now a webpack asset URL) with base64
+            const escapedLogo = appLogo.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            processedContent = processedContent.replace(new RegExp(`src="${escapedLogo}"`, 'g'), `src="${logoBase64}"`);
+            processedContent = processedContent.replace(new RegExp(`src='${escapedLogo}'`, 'g'), `src='${logoBase64}'`);
         }
         // Remove onerror that hides the image on failure
         processedContent = processedContent.replace(/onerror="this\.style\.display='none'"/g, '');

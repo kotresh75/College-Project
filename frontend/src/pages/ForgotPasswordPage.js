@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { KeyRound, Mail, CheckCircle, AlertCircle } from 'lucide-react';
 import { usePreferences } from '../context/PreferencesContext';
 import { useLanguage } from '../context/LanguageContext';
+import InteractiveBG from '../components/common/InteractiveBG';
 
 const ForgotPasswordPage = () => {
     const [step, setStep] = useState(1); // 1: Email, 2: OTP, 3: New Password
@@ -100,13 +101,11 @@ const ForgotPasswordPage = () => {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white p-4 relative overflow-y-auto">
-            {/* Background blobs */}
-            <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-accent/20 rounded-full blur-[100px] animate-pulse-slow"></div>
-            <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-purple-500/20 rounded-full blur-[100px] animate-pulse-slow delay-1000"></div>
+        <div className="login-container">
+            {/* Interactive Background */}
+            <InteractiveBG />
 
-
-            <div className="glass-panel p-8 w-full max-w-md relative z-10 animate-fade-in-up">
+            <div className="login-card glass-panel bounce-in">
                 <div className="text-center mb-8">
                     <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4">
                         <KeyRound size={32} className="text-accent" />

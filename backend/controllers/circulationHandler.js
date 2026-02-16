@@ -362,17 +362,43 @@ exports.returnBook = async (req, res) => {
             ? parseFloat(req.body.custom_fine_amount)
             : null;
 
-        const damagedFine = (customFineAmount !== null && condition === 'Damaged') ? customFineAmount : (parseInt(policyFinancial.damagedFineAmount) || 100);
-        const lostFine = (customFineAmount !== null && condition === 'Lost') ? customFineAmount : (parseInt(policyFinancial.lostFineAmount) || 500);
+        // FIXED: Prioritize custom_fine_amount if it exists (for ANY condition)
+        if (customFineAmount !== null && !isNaN(customFineAmount)) {
+            fineAmount = customFineAmount;
+            // Append remark if not already there
+            if (condition === 'Good' && isOverdue) {
+                fineRemark += `Overdue (Manual Fine: ₹${customFineAmount}). `;
+            } else if (condition !== 'Good') {
+                fineRemark += `Condition: ${condition} (Manual Fine: ₹${customFineAmount}). `;
+            } else {
+                fineRemark += `Manual Fine: ₹${customFineAmount}. `;
+            }
+        } else {
+            // Default Calculation (Fallback)
+            if (isOverdue) {
+                // Fines apply immediately (Grace Period removed as per request)
+                const effectiveOverdueDays = diffDays;
+                fineAmount += (effectiveOverdueDays * dailyFineRate);
+                fineRemark += `Overdue by ${effectiveOverdueDays} days (Rate: ₹${dailyFineRate}/day). `;
+            }
 
+            const damagedFine = (parseInt(policyFinancial.damagedFineAmount) || 100);
+            const lostFine = (parseInt(policyFinancial.lostFineAmount) || 500);
+
+            if (condition === 'Damaged') {
+                fineAmount += damagedFine;
+                fineRemark += `Book Damaged (Fine: ₹${damagedFine}). `;
+            } else if (condition === 'Lost') {
+                fineAmount += lostFine;
+                fineRemark += `Book Lost (Fine: ₹${lostFine}). `;
+            }
+        }
+
+        // Set Copy Status based on condition (independent of fine amount)
         if (condition === 'Damaged') {
             copyStatus = 'Maintenance';
-            fineAmount += damagedFine;
-            fineRemark += `Book Damaged (Fine: ₹${damagedFine}). `;
         } else if (condition === 'Lost') {
             copyStatus = 'Lost';
-            fineAmount += lostFine;
-            fineRemark += `Book Lost (Fine: ₹${lostFine}). `;
         }
 
 

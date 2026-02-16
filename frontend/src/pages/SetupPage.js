@@ -5,7 +5,9 @@ import { User, Mail, Lock, Eye, EyeOff, ShieldCheck, Sun, Moon, Type, Globe } fr
 import { usePreferences } from '../context/PreferencesContext';
 import { useLanguage } from '../context/LanguageContext';
 import logo from '../assets/logo.png';
+import LogoParticles from '../components/common/LogoParticles';
 import StatusModal from '../components/common/StatusModal';
+import InteractiveBG from '../components/common/InteractiveBG';
 
 const SetupPage = () => {
     const navigate = useNavigate();
@@ -87,7 +89,7 @@ const SetupPage = () => {
     if (checking) {
         return (
             <div className="login-container">
-                <div className="gradient-bg" />
+                <InteractiveBG />
                 <div className="login-card glass-panel bounce-in" style={{ textAlign: 'center', padding: '60px 40px' }}>
                     <div className="spinner-sm" style={{ margin: '0 auto 16px' }} />
                     <p style={{ color: 'var(--text-secondary)' }}>{t('auth.setup.checking')}</p>
@@ -98,7 +100,7 @@ const SetupPage = () => {
 
     return (
         <div className="login-container">
-            <div className="gradient-bg" />
+            <InteractiveBG />
 
             {/* Top Right Controls */}
             <div className="login-controls">
@@ -116,14 +118,13 @@ const SetupPage = () => {
             </div>
 
             <div className="login-card glass-panel bounce-in" style={{ maxWidth: '460px' }}>
-                <div className="login-header text-center flex flex-col items-center justify-center">
-                    <img src={logo} alt="Logo" className="login-logo" />
-                    <h2 className="login-title" style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
-                        <ShieldCheck size={24} style={{ color: 'var(--accent-primary)' }} />
-                        {t('auth.setup.title')}
-                    </h2>
-                    <p className="login-subtitle">{t('auth.setup.subtitle')}</p>
-                </div>
+                <LogoParticles
+                    logoSrc={logo}
+                    title={t('auth.setup.title')}
+                    subtitle={t('auth.setup.subtitle')}
+                    compact
+                    titleIcon={<ShieldCheck size={24} style={{ color: 'var(--accent-primary)' }} />}
+                />
 
                 <form onSubmit={handleSubmit} className="login-form">
                     <div className="input-group">

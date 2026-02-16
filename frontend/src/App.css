@@ -1206,21 +1206,8 @@ body[data-theme='dark'] .gradient-bg::after {
    12.0. Dashboard Footer
    ========================================= */
 
-.glass-footer {
-    padding: 15px 30px;
-    background: var(--glass-bg);
-    border-top: 1px solid var(--glass-border);
-    backdrop-filter: blur(20px);
-    text-align: center;
-    font-size: 0.85rem;
-    color: var(--text-secondary);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    transition: all 0.3s ease;
-    margin-top: auto;
-    pointer-events: auto !important;
-}
+/* Single consolidated definition — footer lives inside .layout-scroll-container
+   and scrolls with page content like a normal footer. */
 
 /* =========================================
    13.0. Dashboard Grid System
@@ -1266,13 +1253,16 @@ body[data-theme='dark'] .gradient-bg::after {
    14.0. Main Layout Structure
    ========================================= */
 
+/* The Main Layout Wrapper */
 .layout-main {
     flex: 1;
     display: flex;
     flex-direction: column;
     min-width: 0;
-    height: 100vh;
+    height: 100%;
     overflow: hidden;
+    position: relative;
+    /* Anchor for absolute footer */
 }
 
 /* The Scrollable Area */
@@ -1284,16 +1274,23 @@ body[data-theme='dark'] .gradient-bg::after {
     overflow-x: hidden;
     position: relative;
     scroll-behavior: smooth;
+    height: auto;
+    min-height: 0;
 }
 
 /* The Page Wrapper */
 .page-content {
-    flex: 1;
-    /* Pushes footer down */
+    flex: 1 0 auto;
+    /* Grow to fill space, push footer down */
+    width: 100%;
     display: flex;
     flex-direction: column;
-    /* Removed min-height constraint to allow natural flow */
+    padding-bottom: 20px;
 }
+
+/* ... scrollbars ... */
+
+/* (Dashboard Footer section removed — consolidated into glass.css) */
 
 /* Scrollbar styling for Main Layout */
 .layout-scroll-container::-webkit-scrollbar {
@@ -1376,24 +1373,7 @@ body[data-theme='dark'] .gradient-bg::after {
     color: var(--text-secondary);
 }
 
-/* =========================================
-   12.0. Dashboard Footer
-   ========================================= */
-
-.glass-footer {
-    padding: 15px 30px;
-    background: var(--glass-bg);
-    border-top: 1px solid var(--glass-border);
-    backdrop-filter: blur(20px);
-    text-align: center;
-    font-size: 0.85rem;
-    color: var(--text-secondary);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin-top: auto;
-    pointer-events: auto !important;
-}
+/* (Dashboard Footer section removed — consolidated into glass.css) */
 
 
 /* =========================================
@@ -1729,12 +1709,19 @@ textarea,
     display: flex;
     flex-direction: column;
     height: 100vh;
+    width: 100vw;
     overflow: hidden;
+    background: var(--bg-color);
 }
 
 /* Adjust Dashboard Layout to take remaining height */
 .dashboard-layout {
-    height: calc(100vh - 32px) !important;
+    display: flex;
+    flex: 1;
+    height: 100%;
+    /* Force full remaining height */
+    overflow: hidden;
+    position: relative;
 }
 
 /* --- Fixed Logo --- */

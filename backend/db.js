@@ -105,6 +105,16 @@ const db = new sqlite3.Database(dbPath, (err) => {
                     if (!err) console.log("Added requires_restart column to system_settings table");
                 });
 
+                // SCHEMA MIGRATION: Add profile_icon to admins if not exists
+                db.run("ALTER TABLE admins ADD COLUMN profile_icon TEXT", (err) => {
+                    if (!err) console.log("Added profile_icon column to admins table");
+                });
+
+                // SCHEMA MIGRATION: Add profile_icon to staff if not exists
+                db.run("ALTER TABLE staff ADD COLUMN profile_icon TEXT", (err) => {
+                    if (!err) console.log("Added profile_icon column to staff table");
+                });
+
                 // SCHEMA MIGRATION: Add id to system_settings if not exists (Fix for legacy schema)
                 db.run("ALTER TABLE system_settings ADD COLUMN id TEXT", (err) => {
                     // Start assuming UUIDs if we are adding this column now, or random IDs
@@ -175,7 +185,7 @@ function initializeTables() {
             full_name TEXT NOT NULL,
             dept_id TEXT NOT NULL,
             semester TEXT,
-            email TEXT NOT NULL,
+            email TEXT,
             phone TEXT,
             dob TEXT NOT NULL,
             father_name TEXT,
@@ -402,6 +412,7 @@ function initializeTables() {
             if (!err) console.log("Migration: Added shelf_location column to books table.");
             // Ignore error if column already exists
         });
+
 
         // Seed Default Settings & System User (Admin is created via Setup Page)
         seedSystemSettings();

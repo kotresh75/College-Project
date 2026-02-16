@@ -5,6 +5,7 @@ const settingsController = require('../controllers/settingsHandler');
 router.get('/app', settingsController.getAppSettings);
 router.put('/app', settingsController.updateAppSettings);
 router.post('/change-password', settingsController.changeUserPassword);
+router.get('/email/usage', settingsController.getEmailUsage);
 router.post('/test-email', settingsController.testEmail);
 router.post('/cloud/test-connection', settingsController.testCloudConnection);
 router.post('/cloud/backup', settingsController.triggerCloudBackup);

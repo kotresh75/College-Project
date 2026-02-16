@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useRef, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Download, Printer, FileText, Settings2, Maximize2, Minimize2, Droplets, Layout, Ruler, FileType, Loader2, Image as ImageIcon } from 'lucide-react';
 
 import { generatePdf } from '../../utils/SmartPrinterHandler';
@@ -327,8 +328,8 @@ const PdfPreviewModal = ({ isOpen, onClose, htmlContent, title = 'Document', fil
 
     const previewScale = zoom / 100;
 
-    return (
-        <div className="pdf-preview-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
+    return createPortal(
+        <div className="pdf-preview-overlay" style={{ zIndex: 2200 }} onClick={(e) => e.target === e.currentTarget && onClose()}>
             <div className="pdf-preview-container">
 
                 {/* ---- Header ---- */}
@@ -587,7 +588,8 @@ const PdfPreviewModal = ({ isOpen, onClose, htmlContent, title = 'Document', fil
                     </div>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
 

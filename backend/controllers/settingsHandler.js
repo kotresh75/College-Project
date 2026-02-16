@@ -178,6 +178,30 @@ exports.changeUserPassword = async (req, res) => {
     });
 };
 
+// Get Email Usage Stats
+exports.getEmailUsage = (req, res) => {
+    db.get("SELECT value FROM system_settings WHERE key = 'email_daily_usage'", (err, row) => {
+        if (err) return res.status(500).json({ error: err.message });
+
+        const { getISTDate } = require('../utils/dateUtils');
+        const today = getISTDate().toISOString().split('T')[0];
+        let usage = { count: 0, limit: 500, date: today };
+
+        if (row && row.value) {
+            try {
+                const parsed = JSON.parse(row.value);
+                // Reset display if date mismatch (though service handles actual reset on send)
+                if (parsed.date !== today) {
+                    usage = { ...usage, limit: parsed.limit || 500 };
+                } else {
+                    usage = { ...usage, ...parsed };
+                }
+            } catch (e) { }
+        }
+        res.json(usage);
+    });
+};
+
 // Test Email
 exports.testEmail = async (req, res) => {
     const { email } = req.body;

@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Download, X, FileText, Loader } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -104,11 +105,11 @@ const IDCardPreviewModal = ({ student, onClose }) => {
         setLoading(false);
     };
 
-    return (
+    return createPortal(
         <div className="modal-overlay" style={{
             position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
             background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(5px)',
-            display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1100
+            display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 2200
         }}>
             <div className="glass-panel bounce-in" style={{
                 width: 'auto', maxWidth: '900px', maxHeight: '95vh',
@@ -194,7 +195,8 @@ const IDCardPreviewModal = ({ student, onClose }) => {
                 </div>
 
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
 

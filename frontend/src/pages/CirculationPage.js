@@ -4,6 +4,7 @@ import IssueTab from '../components/circulation/IssueTab';
 import ReturnTab from '../components/circulation/ReturnTab';
 import FinesTab from '../components/circulation/FinesTab';
 import { useLanguage } from '../context/LanguageContext';
+import { useTutorial } from '../context/TutorialContext';
 
 import { useLocation } from 'react-router-dom';
 
@@ -11,10 +12,12 @@ const CirculationPage = () => {
     const location = useLocation();
     const [activeTab, setActiveTab] = useState('issue');
     const { t } = useLanguage();
+    const { setPageContext } = useTutorial();
 
 
     // Handle Route Navigation State
     React.useEffect(() => {
+        setPageContext('circulation');
         if (location.state?.activeTab) {
             setActiveTab(location.state.activeTab);
         }

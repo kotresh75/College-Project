@@ -4,12 +4,30 @@ import axios from 'axios';
 const SessionContext = createContext();
 
 export const SessionProvider = ({ children }) => {
+    // Lock state is now ephemeral (clears on refresh/restart)
     const [isLocked, setIsLocked] = useState(false);
     const [autoLockMinutes, setAutoLockMinutes] = useState(0); // 0 = Never
     const [lastActivity, setLastActivity] = useState(Date.now());
 
     // Timer Ref to clear/reset timeouts
     const lockTimerRef = useRef(null);
+
+    // If auth_token is removed (logout / cleared), auto-unlock
+    useEffect(() => {
+        const checkAuth = () => {
+            if (!localStorage.getItem('auth_token')) {
+                setIsLocked(false);
+            }
+        };
+        // Listen for storage changes (e.g. logout in another context)
+        window.addEventListener('storage', checkAuth);
+        // Also check periodically in case logout happens in the same tab
+        const interval = setInterval(checkAuth, 2000);
+        return () => {
+            window.removeEventListener('storage', checkAuth);
+            clearInterval(interval);
+        };
+    }, []);
 
     // Fetch settings on mount
     const refreshSessionSettings = useCallback(async () => {
@@ -86,8 +104,9 @@ export const SessionProvider = ({ children }) => {
     }, [autoLockMinutes, lastActivity, isLocked]);
 
     const lock = () => {
+        // Only lock if user is actually logged in
+        if (!localStorage.getItem('auth_token')) return;
         setIsLocked(true);
-        // Optional: Send lock event to backend or clear sensitive data from memory if needed
     };
 
     const unlock = async (password) => {

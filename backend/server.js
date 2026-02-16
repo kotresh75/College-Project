@@ -57,6 +57,12 @@ app.get('/api/settings', (req, res) => {
     });
 });
 
+// Global Error Handler (Prevents HTML errors leaking to API clients)
+app.use((err, req, res, next) => {
+    console.error("Unhandled Backend Error:", err);
+    res.status(500).json({ error: err.message || "Internal Server Error" });
+});
+
 
 // Init Socket.io
 socketService.init(server);

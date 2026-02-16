@@ -26,11 +26,13 @@ import { PreferencesProvider } from './context/PreferencesContext';
 import { LanguageProvider } from './context/LanguageContext';
 import { SessionProvider, useSession } from './context/SessionContext';
 import { SocketProvider } from './context/SocketContext';
+import { TutorialProvider } from './context/TutorialContext';
 import GlobalNotifications from './components/common/GlobalNotifications';
+import UserManualModal from './components/common/UserManualModal';
 import LockScreen from './components/common/LockScreen';
 import TitleBar from './components/layout/TitleBar';
-import './App.css';
 import './styles/index.css';
+import './App.css';
 
 // --- Temporary Placeholder Components ---
 const DbStatusCheck = () => {
@@ -73,45 +75,48 @@ function App() {
       <LanguageProvider>
         <SessionProvider>
           <SocketProvider>
-            <Router>
-              <div className="app-container">
-                <TitleBar />
-                <div className="gradient-bg" />
-                <DbStatusCheck />
-                <GlobalNotifications />
-                <LockScreen />
-                <Routes>
-                  <Route path="/setup" element={<SetupPage />} />
-                  <Route path="/" element={<SetupGuard><LandingPage /></SetupGuard>} />
-                  <Route path="/login" element={<SetupGuard><LoginPage /></SetupGuard>} />
-                  <Route path="/about" element={<AboutPage />} />
-                  <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <TutorialProvider>
+              <Router>
+                <div className="app-container">
+                  <TitleBar />
+                  <div className="gradient-bg" />
+                  <DbStatusCheck />
+                  <GlobalNotifications />
+                  <LockScreen />
+                  <Routes>
+                    <Route path="/setup" element={<SetupPage />} />
+                    <Route path="/" element={<SetupGuard><LandingPage /></SetupGuard>} />
+                    <Route path="/login" element={<SetupGuard><LoginPage /></SetupGuard>} />
+                    <Route path="/about" element={<AboutPage />} />
+                    <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
 
-                  {/* Protected Dashboard Routes */}
-                  <Route path="/dashboard" element={<MainLayout />}>
-                    <Route index element={<DashboardHome />} />
-                    <Route path="books" element={<CatalogPage />} />
-                    <Route path="departments" element={<DepartmentPage />} />
-                    <Route path="members" element={<StudentManager />} />
-                    <Route path="staff" element={<StaffManager />} />
-                    <Route path="circulation" element={<CirculationPage />} />
-                    <Route path="policy" element={<PolicyPage />} />
-                    <Route path="settings" element={<SettingsPage />} />
-                    <Route path="health" element={<SystemHealthPage />} />
-                    <Route path="transactions" element={<TransactionHistoryPage />} />
-                    <Route path="reports" element={<ReportsPage />} />
-                    <Route path="notifications" element={<NotificationPage />} />
-                    <Route path="admins" element={<AdminManager />} />
-                    <Route path="audit" element={<AuditPage />} />
-                    <Route path="profile" element={<UserProfile />} />
-                  </Route>
+                    {/* Protected Dashboard Routes */}
+                    <Route path="/dashboard" element={<MainLayout />}>
+                      <Route index element={<DashboardHome />} />
+                      <Route path="books" element={<CatalogPage />} />
+                      <Route path="departments" element={<DepartmentPage />} />
+                      <Route path="members" element={<StudentManager />} />
+                      <Route path="staff" element={<StaffManager />} />
+                      <Route path="circulation" element={<CirculationPage />} />
+                      <Route path="policy" element={<PolicyPage />} />
+                      <Route path="settings" element={<SettingsPage />} />
+                      <Route path="health" element={<SystemHealthPage />} />
+                      <Route path="transactions" element={<TransactionHistoryPage />} />
+                      <Route path="reports" element={<ReportsPage />} />
+                      <Route path="notifications" element={<NotificationPage />} />
+                      <Route path="admins" element={<AdminManager />} />
+                      <Route path="audit" element={<AuditPage />} />
+                      <Route path="profile" element={<UserProfile />} />
+                    </Route>
 
-                  {/* Fallback */}
-                  <Route path="*" element={<Navigate to="/" replace />} />
-                </Routes>
-              </div>
-            </Router>
+                    {/* Fallback */}
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                  </Routes>
+                  <UserManualModal />
+                </div>
+              </Router>
+            </TutorialProvider>
           </SocketProvider>
         </SessionProvider>
       </LanguageProvider>

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import i18n from '../i18n'; // Import the i18n instance
 import en from '../translations/en.json';
 import kn from '../translations/kn.json';
 import { usePreferences } from './PreferencesContext';
@@ -26,6 +27,10 @@ export const LanguageProvider = ({ children }) => {
         localStorage.setItem('app_language', language);
         // Also update the document lang attribute
         document.documentElement.lang = language;
+        // Sync with i18next
+        if (i18n.language !== language) {
+            i18n.changeLanguage(language);
+        }
     }, [language]);
 
     // Translation function

@@ -2,9 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Activity, Server, Database, Wifi, Cpu, HardDrive, RefreshCw, CheckCircle, AlertTriangle, XCircle, Zap, Box, Shield, HeartPulse, Gauge } from 'lucide-react';
 
 import { useLanguage } from '../context/LanguageContext';
+import { useTutorial } from '../context/TutorialContext';
 
 const SystemHealthPage = () => {
     const { t } = useLanguage();
+    const { setPageContext } = useTutorial();
+    useEffect(() => {
+        setPageContext('system-health');
+    }, []);
     const [health, setHealth] = useState(null);
     const [connectivity, setConnectivity] = useState(null);
     const [loading, setLoading] = useState(true);

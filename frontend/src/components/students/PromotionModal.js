@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X, CheckCircle, AlertTriangle, ArrowRight, ShieldAlert, Download, RefreshCw } from 'lucide-react';
 
 const PromotionModal = ({ onClose, onPromoteComplete }) => {
@@ -72,11 +73,11 @@ const PromotionModal = ({ onClose, onPromoteComplete }) => {
         a.click();
     };
 
-    return (
+    return createPortal(
         <div className="modal-overlay" style={{
             position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
             background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(5px)',
-            display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1100
+            display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 2200
         }}>
             <div className="glass-panel bounce-in" style={{ width: '95%', maxWidth: '650px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', padding: 0, background: 'var(--bg-color)', border: '1px solid var(--glass-border)' }}>
 
@@ -200,7 +201,8 @@ const PromotionModal = ({ onClose, onPromoteComplete }) => {
 
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
 

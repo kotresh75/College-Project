@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
     X, BookOpen, Clock, Users, Edit, Layers, Copy, Check,
     Calendar, AlertTriangle, Book, CreditCard, User, Bookmark
@@ -79,7 +80,7 @@ const SmartBookDetailModal = ({ book, onClose, onEdit, onManageCopies }) => {
     const strokeDashoffset = circumference - (availabilityPercent / 100) * circumference;
     const ringColor = availabilityPercent > 50 ? 'var(--primary-color)' : (availabilityPercent > 0 ? '#ed8936' : '#fc8181');
 
-    return (
+    return createPortal(
         <div className="smart-detail-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
             <div className="smart-detail-modal">
                 {/* Hero Section */}
@@ -310,7 +311,8 @@ const SmartBookDetailModal = ({ book, onClose, onEdit, onManageCopies }) => {
                     )}
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };
 

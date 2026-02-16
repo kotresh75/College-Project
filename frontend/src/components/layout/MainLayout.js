@@ -1,43 +1,54 @@
 import React, { useState, useEffect } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import Footer from './Footer';
 
-import HelpModal from '../common/HelpModal';
+
+import { useTutorial } from '../../context/TutorialContext';
+import '../../styles/animations.css';
 
 const MainLayout = () => {
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
     const [user, setUser] = useState(null);
-    const [isHelpOpen, setIsHelpOpen] = useState(false);
+    const { openManual } = useTutorial();
+    const location = useLocation();
 
     useEffect(() => {
         const storedUser = localStorage.getItem('user_info');
         if (storedUser) {
             setUser(JSON.parse(storedUser));
         }
-
-        // Global Keyboard Shortcut for Help (F12) - Only for Circulation
-        const handleKeyDown = (e) => {
-            if (e.key === 'F12') {
-                if (window.location.hash.includes('circulation')) { // HashRouter uses #
-                    e.preventDefault();
-                    setIsHelpOpen(prev => !prev);
-                }
-            }
-        };
-
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
     }, []);
+
+    // Scroll Reveal Observer
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('revealed');
+                        observer.unobserve(entry.target);
+                    }
+                });
+            },
+            { threshold: 0.1, rootMargin: '0px 0px -40px 0px' }
+        );
+
+        // Observe all .reveal elements within dashboard content
+        const revealElements = document.querySelectorAll('.reveal');
+        revealElements.forEach(el => observer.observe(el));
+
+        return () => observer.disconnect();
+    }, [location.pathname]); // Re-observe on route change
 
     const toggleSidebar = () => {
         setIsSidebarCollapsed(!isSidebarCollapsed);
     };
 
     return (
-        <div className="app-container">
-            {/* TitleBar is now global in App.js */}
+        <>
+            {/* TitleBar is global in App.js, do not include here */}
             <div className="dashboard-layout">
                 <div className="layout-sidebar">
                     <Sidebar isCollapsed={isSidebarCollapsed} />
@@ -52,19 +63,17 @@ const MainLayout = () => {
                 )}
 
                 <div className={`layout-main ${isSidebarCollapsed ? 'expanded' : ''}`}>
-                    <Header toggleSidebar={toggleSidebar} user={user} onHelpClick={() => setIsHelpOpen(true)} />
+                    <Header toggleSidebar={toggleSidebar} user={user} onHelpClick={() => openManual()} />
 
                     <main className="layout-scroll-container">
-                        <div className="page-content">
+                        <div className="page-content page-transition" key={location.pathname}>
                             <Outlet />
                         </div>
                         <Footer />
                     </main>
                 </div>
             </div>
-
-            <HelpModal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
-        </div>
+        </>
     );
 };
 

@@ -163,15 +163,19 @@ exports.getAdminLogs = (req, res) => {
 // Broadcast Message
 exports.broadcastMessage = async (req, res) => {
     const { subject, message, recipient_group } = req.body;
+    const file = req.file; // Multer file object
+    const fs = require('fs');
+
     const actorId = req.user ? req.user.id : 'SYSTEM';
 
     if (!subject || !message || !recipient_group) {
+        // Clean up file if validation fails
+        if (file) fs.unlink(file.path, () => { });
         return res.status(400).json({ error: "Subject, message, and recipient group are required" });
     }
 
     try {
         let recipients = [];
-        // Fetch Recipients
         // Fetch Recipients
         if (recipient_group === 'Students' || recipient_group === 'All') {
             const students = await new Promise((resolve, reject) => {
@@ -244,14 +248,28 @@ exports.broadcastMessage = async (req, res) => {
             recipients = [...recipients, ...issuedStudents];
         }
 
+        // Prepare Attachment
+        const attachment = file ? {
+            filename: file.originalname,
+            path: file.path
+        } : null;
+
         // Send Emails (Async - don't wait for all)
         let sentCount = 0;
-        recipients.forEach(u => {
+        // We use a loop but careful with file cleanup. file cleanup should happen after all usage.
+        // nodemailer streams the file from disk. Ensure we don't delete before sending.
+        // Ideally we wait for sends to complete or at least initiate properly.
+
+        const sendPromises = recipients.map(u => {
             if (u.email) {
-                emailService.sendBroadcast(u, subject, message);
                 sentCount++;
+                return emailService.sendBroadcast(u, subject, message, attachment);
             }
+            return Promise.resolve();
         });
+
+        // Wait for all emails to be handed off to nodemailer
+        await Promise.all(sendPromises);
 
         // Generate Readable Target Display
         let recipientDisplay = recipient_group;
@@ -269,7 +287,7 @@ exports.broadcastMessage = async (req, res) => {
         }
 
         // Log Audit
-        auditService.log(req.user, 'BROADCAST', 'Communication', `Sent broadcast '${subject}' to ${recipientDisplay} (${sentCount} recipients)`, { subject, message, recipient_group, recipient_display: recipientDisplay, sent_count: sentCount });
+        auditService.log(req.user, 'BROADCAST', 'Communication', `Sent broadcast '${subject}' to ${recipientDisplay} (${sentCount} recipients)${file ? ' [With Attachment]' : ''}`, { subject, message, recipient_group, recipient_display: recipientDisplay, sent_count: sentCount, attachment_name: file ? file.originalname : null });
 
         socketService.emit('broadcast_update', {});
         res.json({ message: `Broadcast initiated to ${sentCount} recipients` });
@@ -278,6 +296,15 @@ exports.broadcastMessage = async (req, res) => {
         console.error("Broadcast Error:", err);
         const errorMsg = err.message || (typeof err === 'string' ? err : JSON.stringify(err));
         res.status(500).json({ error: errorMsg || "Unknown Server Error" });
+    } finally {
+        // Cleanup file
+        if (file) {
+            // Unlink after a short delay or immediately if we awaited the sends?
+            // Since we awaited Promise.all(sendPromises), we can unlink now.
+            fs.unlink(file.path, (err) => {
+                if (err) console.error("Failed to delete temp file:", err);
+            });
+        }
     }
 };
 

@@ -2,12 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { Search, Shield, Plus, Lock } from 'lucide-react';
 import { useSocket } from '../context/SocketContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useTutorial } from '../context/TutorialContext';
 import AdminCard from '../components/admin/AdminCard';
 import AddAdminModal from '../components/admin/AddAdminModal';
 import ConfirmationModal from '../components/common/ConfirmationModal';
 
 const AdminManager = () => {
     const { t } = useLanguage();
+    const { setPageContext } = useTutorial();
+    useEffect(() => {
+        setPageContext('admin');
+    }, []);
     const [admins, setAdmins] = useState([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');

@@ -67,7 +67,7 @@ const HelpModal = ({ isOpen, onClose }) => {
                             <div className="shortcuts-inline">
                                 <span className="shortcut-badge">F1 <span className="desc">Issue Tab</span></span>
                                 <span className="shortcut-badge">F2 <span className="desc">Return Tab</span></span>
-                                <span className="shortcut-badge">F12 <span className="desc">Help</span></span>
+                                <span className="shortcut-badge">` <span className="desc">Help</span></span>
                             </div>
                         </div>
                     </div>

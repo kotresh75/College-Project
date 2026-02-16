@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useSocket } from '../context/SocketContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useTutorial } from '../context/TutorialContext';
 import StatsCard from '../components/dashboard/StatsCard';
 import SmartAuditTable from '../components/dashboard/SmartAuditTable';
 import GlassSelect from '../components/common/GlassSelect';
@@ -14,6 +15,10 @@ import PdfPreviewModal from '../components/common/PdfPreviewModal';
 
 const AuditPage = () => {
     const { t } = useLanguage();
+    const { setPageContext } = useTutorial();
+    useEffect(() => {
+        setPageContext('audit');
+    }, []);
     const [logs, setLogs] = useState([]);
     const [stats, setStats] = useState({ today: 0, security: 0, admin_today: 0, total_logs: 0 });
     const [filteredTotal, setFilteredTotal] = useState(0);

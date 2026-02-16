@@ -40,10 +40,11 @@ exports.setupAdmin = (req, res) => {
             const { v4: uuidv4 } = require('uuid');
             const id = uuidv4();
             const createdAt = getISTISOWithOffset();
+            const profileIcon = `/profile-icons/profile_icon_${Math.floor(Math.random() * 15) + 1}.png`;
 
             db.run(
-                "INSERT INTO admins (id, name, email, password_hash, status, created_at) VALUES (?, ?, ?, ?, ?, ?)",
-                [id, name, email, hash, 'Active', createdAt],
+                "INSERT INTO admins (id, name, email, password_hash, status, created_at, profile_icon) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                [id, name, email, hash, 'Active', createdAt, profileIcon],
                 function (err) {
                     if (err) {
                         if (err.message.includes('UNIQUE')) return res.status(409).json({ error: 'Email already exists' });
@@ -69,7 +70,7 @@ exports.setupAdmin = (req, res) => {
                     res.json({
                         message: 'Admin created successfully',
                         token,
-                        user: { id, name, email, role: 'Admin' }
+                        user: { id, name, email, role: 'Admin', profile_icon: profileIcon }
                     });
                 }
             );
@@ -143,14 +144,15 @@ exports.login = (req, res) => {
                     email: user.email,
                     role: role,
                     designation: user.designation,
-                    permissions: user.access_permissions ? JSON.parse(user.access_permissions) : []
+                    permissions: user.access_permissions ? JSON.parse(user.access_permissions) : [],
+                    profile_icon: user.profile_icon || null
                 }
             });
         });
     };
 
     // 1. Check Admins Table (Find by Email only first)
-    db.get("SELECT id, name, email, password_hash, status, 'Admin' as role FROM admins WHERE email = ?", [email], (err, admin) => {
+    db.get("SELECT id, name, email, password_hash, status, profile_icon, 'Admin' as role FROM admins WHERE email = ?", [email], (err, admin) => {
         if (err) return res.status(500).json({ message: 'Database error' });
 
         if (admin) {
@@ -158,7 +160,7 @@ exports.login = (req, res) => {
         }
 
         // 2. If not in Admins, Check Staff Table
-        db.get("SELECT id, name, email, password_hash, status, designation, access_permissions, 'Staff' as role FROM staff WHERE email = ?", [email], (err, staff) => {
+        db.get("SELECT id, name, email, password_hash, status, designation, access_permissions, profile_icon, 'Staff' as role FROM staff WHERE email = ?", [email], (err, staff) => {
             if (err) return res.status(500).json({ message: 'Database error' });
 
             if (staff) {
@@ -357,5 +359,25 @@ exports.changePassword = (req, res) => {
                 });
             });
         });
+    });
+};
+
+// PUT /api/auth/profile-icon — Update profile icon for the logged-in user
+exports.updateProfileIcon = (req, res) => {
+    const { profileIcon } = req.body;
+    const { id, role } = req.user;
+
+    if (!profileIcon) {
+        return res.status(400).json({ message: 'Profile icon is required' });
+    }
+
+    let table = role === 'Admin' ? 'admins' : 'staff';
+    if (id === 'SYSTEM') table = 'staff';
+
+    db.run(`UPDATE ${table} SET profile_icon = ? WHERE id = ?`, [profileIcon, id], function (err) {
+        if (err) return res.status(500).json({ message: 'Failed to update profile icon' });
+
+        auditService.log(req.user, 'PROFILE_ICON_CHANGE', 'Auth', `User changed profile icon to ${profileIcon}`);
+        res.json({ message: 'Profile icon updated successfully', profile_icon: profileIcon });
     });
 };
