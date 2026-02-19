@@ -31,6 +31,7 @@ const stateFilePath = path.join(userDataPath, 'window-state.json');
 // -----------------------------------------------------------------------------
 autoUpdater.autoDownload = true;
 autoUpdater.autoInstallOnAppQuit = true;
+autoUpdater.disableDifferentialDownload = true;
 autoUpdater.logger = require('electron').app.getLogger ? null : console;
 
 function setupAutoUpdater() {
