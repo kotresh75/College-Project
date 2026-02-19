@@ -2,6 +2,7 @@ const { app, BrowserWindow, ipcMain, shell } = require('electron');
 const { exec } = require('child_process');
 const path = require('path');
 const fs = require('fs');
+const { autoUpdater } = require('electron-updater');
 
 // -----------------------------------------------------------------------------
 // 0. Single Instance Lock
@@ -24,6 +25,77 @@ let isQuitting = false;
 const isDev = !app.isPackaged;
 const userDataPath = app.getPath('userData');
 const stateFilePath = path.join(userDataPath, 'window-state.json');
+
+// -----------------------------------------------------------------------------
+// AUTO-UPDATER CONFIGURATION
+// -----------------------------------------------------------------------------
+autoUpdater.autoDownload = true;
+autoUpdater.autoInstallOnAppQuit = true;
+autoUpdater.logger = require('electron').app.getLogger ? null : console;
+
+function setupAutoUpdater() {
+    if (isDev) {
+        console.log('[AutoUpdater] Skipping in dev mode');
+        return;
+    }
+
+    autoUpdater.on('checking-for-update', () => {
+        console.log('[AutoUpdater] Checking for updates...');
+    });
+
+    autoUpdater.on('update-available', (info) => {
+        console.log('[AutoUpdater] Update available:', info.version);
+        if (mainWindow) {
+            mainWindow.webContents.send('update-available', {
+                version: info.version,
+                releaseDate: info.releaseDate
+            });
+        }
+    });
+
+    autoUpdater.on('update-not-available', () => {
+        console.log('[AutoUpdater] App is up to date.');
+    });
+
+    autoUpdater.on('download-progress', (progress) => {
+        console.log(`[AutoUpdater] Download: ${Math.round(progress.percent)}%`);
+        if (mainWindow) {
+            mainWindow.webContents.send('update-download-progress', {
+                percent: Math.round(progress.percent),
+                transferred: progress.transferred,
+                total: progress.total
+            });
+        }
+    });
+
+    autoUpdater.on('update-downloaded', (info) => {
+        console.log('[AutoUpdater] Update downloaded:', info.version);
+        if (mainWindow) {
+            mainWindow.webContents.send('update-downloaded', {
+                version: info.version,
+                releaseDate: info.releaseDate
+            });
+        }
+    });
+
+    autoUpdater.on('error', (err) => {
+        console.error('[AutoUpdater] Error:', err.message);
+    });
+
+    // Check for updates after a short delay (let the app settle first)
+    setTimeout(() => {
+        autoUpdater.checkForUpdatesAndNotify().catch(err => {
+            console.error('[AutoUpdater] Check failed:', err.message);
+        });
+    }, 5000);
+}
+
+// IPC: Renderer requests to install the update and restart
+ipcMain.on('install-update', () => {
+    console.log('[AutoUpdater] User requested install. Quitting and installing...');
+    isQuitting = true;
+    autoUpdater.quitAndInstall(false, true);
+});
 
 // -----------------------------------------------------------------------------
 // 1. Splash Window
@@ -221,7 +293,10 @@ function startBackend() {
         // Listen for the "Done" signal from backend if we implement it, 
         // OR just assume it's up.
         // For robustness, let's wait a second before showing main window to let DB connect.
-        setTimeout(createWindow, 2500);
+        setTimeout(() => {
+            createWindow();
+            setupAutoUpdater(); // Check for updates after app is ready
+        }, 2500);
 
     } catch (err) {
         console.error("Failed to start backend:", err);

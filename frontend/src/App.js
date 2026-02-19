@@ -32,6 +32,7 @@ import GlobalNotifications from './components/common/GlobalNotifications';
 import UserManualModal from './components/common/UserManualModal';
 import DatabaseSchemaModal from './components/common/DatabaseSchemaModal';
 import LockScreen from './components/common/LockScreen';
+import UpdateBanner from './components/common/UpdateBanner';
 import TitleBar from './components/layout/TitleBar';
 import './styles/index.css';
 import './App.css';
@@ -83,6 +84,7 @@ function App() {
                   <div className="app-container">
                     <TitleBar />
                     <div className="gradient-bg" />
+                    <UpdateBanner />
                     <DbStatusCheck />
                     <GlobalNotifications />
                     <LockScreen />

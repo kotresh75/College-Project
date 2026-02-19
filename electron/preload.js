@@ -24,5 +24,16 @@ contextBridge.exposeInMainWorld(
     getScanners: () => ipcRenderer.invoke('get-scanners'),
     printSilent: (content, printerName) => ipcRenderer.invoke('print-silent', content, printerName),
     printToPDF: (content, options) => ipcRenderer.invoke('print-to-pdf', content, options),
-    openExternal: (url) => ipcRenderer.send('open-external', url)
+    openExternal: (url) => ipcRenderer.send('open-external', url),
+
+    // Auto-Update API
+    onUpdateAvailable: (callback) => ipcRenderer.on('update-available', (_event, info) => callback(info)),
+    onUpdateDownloaded: (callback) => ipcRenderer.on('update-downloaded', (_event, info) => callback(info)),
+    onUpdateProgress: (callback) => ipcRenderer.on('update-download-progress', (_event, info) => callback(info)),
+    installUpdate: () => ipcRenderer.send('install-update'),
+    removeUpdateListeners: () => {
+        ipcRenderer.removeAllListeners('update-available');
+        ipcRenderer.removeAllListeners('update-downloaded');
+        ipcRenderer.removeAllListeners('update-download-progress');
+    }
 });
